@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KiCon Asia 2026 · Live Translate</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <div id="control">
+      <header class="masthead">
+        <a class="brand" href="/" aria-label="KiCon Live 首页"
+          ><span class="brand-mark">K<span>↗</span></span
+          ><span>KiCon<span class="brand-sub">ASIA 2026</span></span></a
+        >
+        <nav>
+          <span class="nav-active"
+            >同传工作台 <small>LIVE TRANSLATE</small></span
+          ><a href="/screen" target="kicon-screen">观众屏幕 ↗</a>
+        </nav>
+        <span id="connection" class="connection">连接工作台…</span>
+      </header>
+      <main>
+        <div class="intro">
+          <div>
+            <p class="eyebrow">LANGUAGE CONNECTS US.</p>
+            <h1>让每一种语言，<span>都被听见。</span></h1>
+            <p class="intro-note">KiCon Asia 2026 实时双语字幕控制台</p>
+          </div>
+          <div class="intro-right">
+            <span class="edition">中 / EN</span>
+            <p>Open hardware.<br />Shared understanding.</p>
+          </div>
+        </div>
+        <div id="notice" class="notice" role="alert" hidden></div>
+        <div class="workspace">
+          <aside class="setup">
+            <div class="section-heading">
+              <span class="number">01</span>
+              <h2>音频与翻译</h2>
+              <span class="small-label">INPUT</span>
+            </div>
+            <label for="input-kind">音频来源</label
+            ><select id="input-kind">
+              <option value="mic">麦克风 / 调音台输入</option>
+              <option value="system">电脑 / 浏览器共享音频</option>
+            </select>
+            <div id="device-wrap">
+              <label for="device"
+                >输入设备
+                <button type="button" id="refresh-devices" class="text-button">
+                  刷新
+                </button></label
+              ><select id="device">
+                <option value="">系统默认麦克风</option>
+              </select>
+            </div>
+            <p class="hint" id="audio-hint">
+              会场建议连接调音台或 USB 声卡，获取清晰的人声。
+            </p>
+            <div class="level-row">
+              <span>输入电平</span>
+              <div class="level-track"><div id="level"></div></div>
+              <span id="level-value">—</span>
+            </div>
+            <label for="direction">发言语言</label
+            ><select id="direction">
+              <option value="auto">中英交替 · 自动双向</option>
+              <option value="zh-en">中文演讲 → English</option>
+              <option value="en-zh">English talk → 中文</option>
+            </select>
+            <p id="direction-hint" class="hint">
+              自动双向使用 2 个实时会话，分别生成中、英文字幕。
+            </p>
+            <details class="terms">
+              <summary>会议术语 <span>KiCad / PCB</span></summary>
+              <p class="hint">每行一组：中文 = English。开始新会话时生效。</p>
+              <textarea id="terms" rows="7" aria-label="中英会议术语">
+KiCad = KiCad
+KiCon Asia = KiCon Asia
+印刷电路板 = PCB
+原理图 = schematic
+差分对 = differential pair
+设计规则检查 = design rule check
+开源硬件 = open-source hardware</textarea
+              >
+            </details>
+            <button id="start" class="button primary" disabled>
+              <span>●</span> 开始同传 <span>↗</span>
+            </button>
+            <button id="demo" class="button secondary" disabled>
+              预览演示字幕 <span>▷</span>
+            </button>
+            <p class="start-note">演示不使用麦克风，也不调用模型。</p>
+            <div class="model-note">
+              <span class="model-dot"></span>
+              <div>
+                <strong>Qwen LiveTranslate</strong
+                ><span id="model-name">读取模型配置…</span>
+              </div>
+            </div>
+            <section class="usage-panel" aria-labelledby="usage-heading">
+              <div class="usage-heading">
+                <h3 id="usage-heading">本次用量</h3>
+                <span id="usage-status">等待回报</span>
+              </div>
+              <dl class="usage-totals">
+                <div>
+                  <dt>会话时长</dt>
+                  <dd id="usage-duration">00:00:00</dd>
+                </div>
+                <div>
+                  <dt>Token 合计</dt>
+                  <dd id="usage-total">—</dd>
+                </div>
+                <div>
+                  <dt id="usage-cost-label">预估费用</dt>
+                  <dd id="usage-cost">—</dd>
+                </div>
+                <div>
+                  <dt id="usage-per-minute-label">平均每分钟</dt>
+                  <dd id="usage-per-minute">—</dd>
+                </div>
+              </dl>
+              <p class="hint" id="usage-time-note">
+                从开始到结束计时，含连接与收尾；双向不重复计时。
+              </p>
+              <p id="usage-note" class="hint">
+                每次模型响应结束后更新，双向会话自动合计。
+              </p>
+              <details>
+                <summary>用量明细与计费依据</summary>
+                <dl class="usage-details">
+                  <div>
+                    <dt>输入 token</dt>
+                    <dd id="usage-input">—</dd>
+                  </div>
+                  <div>
+                    <dt>输出 token</dt>
+                    <dd id="usage-output">—</dd>
+                  </div>
+                  <div>
+                    <dt>音频输入</dt>
+                    <dd id="usage-audio">—</dd>
+                  </div>
+                  <div>
+                    <dt>文本输入</dt>
+                    <dd id="usage-input-text">—</dd>
+                  </div>
+                  <div>
+                    <dt>文本输出</dt>
+                    <dd id="usage-text">—</dd>
+                  </div>
+                </dl>
+                <p id="usage-rates" class="hint"></p>
+                <p class="hint">
+                  费用仅为已定价项的估算，未扣除免费额度或折扣，以平台账单为准。随
+                  TXT 和本地会话记录保存。
+                </p>
+                <a
+                  href="https://www.qianwenai.com/models/qwen3.8-livetranslate-flash-realtime"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-button"
+                  >查看平台价格 ↗</a
+                >
+              </details>
+            </section>
+          </aside>
+          <section class="live-panel">
+            <div class="section-heading">
+              <span class="number">02</span>
+              <h2>实时字幕</h2>
+              <div class="live-status">
+                <i id="status-dot"></i><span id="status">待开始</span
+                ><span id="elapsed">00:00</span>
+              </div>
+            </div>
+            <div class="preview-top">
+              <span>观众屏幕预览</span
+              ><span id="preview-mode">中文 + English</span>
+            </div>
+            <div id="preview" class="stage preview-stage" data-theme="dark">
+              <div class="stage-heading">
+                <span>KiCon <b>ASIA 2026</b></span
+                ><span class="stage-indicator">LIVE TRANSLATION</span>
+              </div>
+              <div class="captions">
+                <div class="caption-lane" data-lane="zh">
+                  <span class="language-label">中文</span>
+                  <div class="caption-text" lang="zh-CN"></div>
+                </div>
+                <div class="caption-lane" data-lane="en">
+                  <span class="language-label">ENGLISH</span>
+                  <div class="caption-text" lang="en"></div>
+                </div>
+              </div>
+              <div class="stage-footer">
+                <span>OPEN HARDWARE. SHARED UNDERSTANDING.</span
+                ><span class="stage-state">等待发言 / READY</span>
+              </div>
+            </div>
+            <div class="preview-bottom">
+              <span><i class="tiny-dot"></i> 与投屏窗口同步</span
+              ><button id="open-screen" class="text-button">
+                打开投屏窗口 ↗
+              </button>
+            </div>
+            <div class="transcript-heading">
+              <h3>识别原文</h3>
+              <span>实时转写 · 自动保存</span
+              ><button id="export" class="text-button">导出 TXT ↓</button>
+            </div>
+            <div id="transcript" class="transcript" aria-live="polite">
+              <div class="empty-transcript">
+                <span>〰</span>
+                <p>声音进来，文字就会出现。</p>
+                <small>选择音频来源并开始同传，或先预览演示字幕。</small>
+              </div>
+            </div>
+          </section>
+          <aside class="output">
+            <div class="section-heading">
+              <span class="number">03</span>
+              <h2>投屏设置</h2>
+              <span class="small-label">OUTPUT</span>
+            </div>
+            <label>显示语言</label>
+            <div class="segmented" role="group" aria-label="投屏显示语言">
+              <button data-mode="bilingual" class="selected">双语</button
+              ><button data-mode="zh">中文</button
+              ><button data-mode="en">English</button>
+            </div>
+            <label for="font-size"
+              >字幕字号 <output id="font-value">44 px</output></label
+            ><input id="font-size" type="range" min="24" max="88" value="44" />
+            <label for="line-count">保留的字幕段落</label
+            ><select id="line-count">
+              <option value="1">最近 1 段</option>
+              <option value="2">最近 2 段</option>
+              <option value="3" selected>最近 3 段</option>
+              <option value="4">最近 4 段</option>
+              <option value="5">最近 5 段</option>
+            </select>
+            <label>屏幕主题</label>
+            <div class="theme-options">
+              <button data-theme="dark" class="theme-option selected">
+                <span class="swatch dark">Aa</span>深色</button
+              ><button data-theme="light" class="theme-option">
+                <span class="swatch light">Aa</span>浅色
+              </button>
+            </div>
+            <div class="output-actions">
+              <button id="freeze" class="button secondary">
+                Ⅱ 暂停字幕更新</button
+              ><button id="blank" class="button secondary">▱ 临时黑屏</button>
+            </div>
+            <div class="projection-tip">
+              <span>↗</span>
+              <h3>为大屏而生。</h3>
+              <p>
+                打开投屏窗口，拖到扩展显示器，再点击全屏。控制台留在自己的屏幕上。
+              </p>
+              <a href="/screen" target="kicon-screen">打开观众屏幕 ↗</a>
+            </div>
+            <details class="archives">
+              <summary>字幕与会话记录</summary>
+              <button id="srt-zh" class="text-button">中文 SRT ↓</button
+              ><button id="srt-en" class="text-button">English SRT ↓</button>
+              <p class="hint">SRT 使用字幕到达时间；精剪视频前请校准。</p>
+              <button id="load-recordings" class="text-button">
+                查看本地存档
+              </button>
+              <div id="recordings"></div>
+            </details>
+          </aside>
+        </div>
+        <footer class="page-footer">
+          <span>KiCon Asia 2026 <i>/</i> A conversation without borders.</span
+          ><span>原文识别 + 实时翻译 + 独立投屏</span>
+        </footer>
+      </main>
+    </div>
+    <div id="projection" hidden>
+      <div
+        id="projection-stage"
+        class="stage fullscreen-stage"
+        data-theme="dark"
+      >
+        <div class="stage-heading">
+          <span>KiCon <b>ASIA 2026</b></span
+          ><span class="stage-indicator">LIVE TRANSLATION</span>
+        </div>
+        <div class="captions">
+          <div class="caption-lane" data-lane="zh">
+            <span class="language-label">中文</span>
+            <div class="caption-text" lang="zh-CN"></div>
+          </div>
+          <div class="caption-lane" data-lane="en">
+            <span class="language-label">ENGLISH</span>
+            <div class="caption-text" lang="en"></div>
+          </div>
+        </div>
+        <div class="stage-footer">
+          <span>OPEN HARDWARE. SHARED UNDERSTANDING.</span
+          ><span class="stage-state">等待发言 / READY</span>
+        </div>
+      </div>
+      <div class="screen-controls">
+        <span id="screen-status">正在连接字幕…</span
+        ><button id="fullscreen" class="button">⛶ 全屏 / F</button>
+      </div>
+    </div>
+  </body>
+</html>
