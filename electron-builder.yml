@@ -1,0 +1,43 @@
+appId: org.kicon.live-translate
+productName: KiCon Live Translate
+copyright: Copyright © 2026 KiCon Live Translate contributors
+directories:
+  output: release
+  buildResources: build
+asar: true
+electronDist: node_modules/electron/dist
+npmRebuild: false
+files:
+  - package.json
+  - desktop/application.cjs
+  - desktop/service.cjs
+  - desktop/overlay-window.cjs
+  - desktop/window-preferences.cjs
+  - desktop/preload.cjs
+  - desktop/self-test.cjs
+  - server/**
+  - public/**
+  - '!**/.env*'
+  - '!**/.local/**'
+  - '!**/recordings/**'
+extraResources:
+  - from: docs/安装与迁移说明.txt
+    to: 安装与迁移说明.txt
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.ico
+  artifactName: KiCon-Live-Translate-Setup-${version}-${arch}.${ext}
+  signAndEditExecutable: true
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: KiCon 实时同传
+  runAfterFinish: false
+  deleteAppDataOnUninstall: false
+  installerLanguages: [zh_CN, en_US]
+  language: '2052'

@@ -109,6 +109,8 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
       PORT: String(port),
       HOST: "127.0.0.1",
       RECORDINGS_DIR: dir,
+      CONFIG_ENV_FILE: join(dir, ".env"),
+      DISPLAY_SETTINGS_FILE: join(dir, "display.json"),
       QWEN_API_KEY: "test-secret",
       QWEN_REALTIME_URL: `ws://127.0.0.1:${mock.address().port}`,
     },
@@ -126,6 +128,14 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
     const config = await fetch(origin + "/api/config").then((r) => r.json());
     assert.ok(!JSON.stringify(config).includes("test-secret"));
     assert.equal((await fetch(origin + "/.env")).status, 404);
+    assert.equal(config.baseURL, "https://maas.qianwenaiapi.com/compatible-mode/v1");
+    for (const route of ["/api/config", "/api/overlay"]) {
+      assert.equal((await fetch(origin + route, { method: "POST" })).status, 403);
+      assert.equal((await fetch(origin + route, { method: "POST", headers: { origin: "https://untrusted.example", "x-kicon-token": config.token } })).status, 403);
+    }
+    const postConfig = (data) => fetch(origin + "/api/config", { method: "POST", headers: {
+      origin, "x-kicon-token": config.token, "content-type": "application/json",
+    }, body: JSON.stringify(data) });
     async function connect(role) {
       const ws = new WebSocket(
         `ws://127.0.0.1:${port}/ws?role=${role}&token=${config.token}`,
@@ -158,6 +168,7 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
     const live = wait(viewer, (m) => m.state?.status === "live");
     controller.send(JSON.stringify({ type: "start", mode: "auto", terms: [] }));
     await live;
+    assert.equal((await postConfig({})).status, 409, "running sessions cannot change configuration");
     assert.equal(sessions, 2);
     const rejection = wait(rival, (m) => m.type === "error");
     rival.send(JSON.stringify({ type: "start", mode: "auto" }));
@@ -225,6 +236,17 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
     const failed = wait(viewer, (m) => m.state?.status === "error");
     controller.send(JSON.stringify({ type: "start", mode: "en-zh" }));
     assert.match((await failed).state.error, /test upstream failure/);
+    assert.equal((await postConfig({ baseURL: "javascript:alert(1)", model: "test" })).status, 400);
+    const replacement = { baseURL: "https://example.com/compatible-mode/v1", model: "new-model", key: "replacement-test-key" };
+    const savedConfig = wait(viewer, (m) => m.type === "config");
+    const response = await postConfig(replacement);
+    assert.equal(response.status, 200);
+    const saved = await response.json();
+    assert.equal(saved.realtimeURL, "wss://example.com/api-ws/v1/realtime");
+    assert.equal(saved.configured, true);
+    assert.ok(!JSON.stringify(saved).includes("replacement-test-key"));
+    assert.equal((await savedConfig).config.model, "new-model");
+    assert.ok(!(await fetch(origin + "/api/config").then((r) => r.text())).includes("replacement-test-key"));
   } finally {
     sockets.forEach((ws) => ws.terminate());
     const exited = once(child, "exit");

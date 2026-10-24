@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "main": "desktop/application.cjs",
+  "description": "KiCon Asia bilingual live translation and desktop captions",
+  "author": "KiCon Live Translate",
   "scripts": {
     "start": "node --env-file-if-exists=.env server/index.js",
     "overlay": "node --env-file-if-exists=.env desktop/launch.cjs",
@@ -10,7 +13,10 @@
     "test": "node --test test/*.test.js",
     "test:overlay": "node scripts/check-overlay.cjs",
     "check:api": "node --env-file-if-exists=.env scripts/check-api.js",
-    "test:transport": "node scripts/smoke.js"
+    "test:transport": "node scripts/smoke.js",
+    "pack:win": "electron-builder --win --x64 --dir",
+    "dist:win": "electron-builder --win nsis --x64",
+    "test:package": "node scripts/audit-package.cjs && node scripts/check-package.cjs"
   },
   "engines": {
     "node": ">=22"
@@ -20,6 +26,7 @@
   },
   "devDependencies": {
     "electron": "^45.0.0",
+    "electron-builder": "26.18.0",
     "jsdom": "^29.1.1"
   }
 }

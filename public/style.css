@@ -1054,6 +1054,83 @@ body:not(.native-overlay):has(#projection:not([hidden])) {
 .floating-option .hint {
   margin: 0;
 }
+.floating-launch-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.floating-launch-actions .button {
+  padding: 10px 5px;
+  font-size: 11px;
+  min-width: 0;
+}
+#desktop-launch-status {
+  margin: 4px 0 10px;
+}
+.settings-form {
+  display: grid;
+  grid-template-columns: minmax(0, 620px) minmax(220px, 300px);
+  gap: clamp(32px, 6vw, 100px);
+  padding: 24px 0 70px;
+  border-top: 1px solid var(--line);
+}
+.settings-fields h2 {
+  margin: 0 0 28px;
+  font-size: 21px;
+}
+.settings-fields input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fcfcf7;
+  color: var(--ink);
+}
+.settings-fields input:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.settings-fields label {
+  margin-top: 24px;
+}
+.settings-fields .hint,
+.settings-notes p {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.settings-advanced {
+  margin-top: 24px;
+}
+.settings-advanced summary {
+  cursor: pointer;
+}
+.settings-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+}
+.settings-actions .button {
+  width: auto;
+  margin: 0;
+}
+.settings-notes {
+  border-left: 1px solid var(--line);
+  padding-left: 28px;
+  color: var(--muted);
+}
+.settings-notes h3 {
+  margin: 18px 0;
+  font-size: 22px;
+  color: var(--ink);
+}
+#settings-status {
+  color: var(--green);
+  min-height: 24px;
+}
+@media (max-width: 760px) {
+  .settings-form { grid-template-columns: 1fr; }
+  .settings-notes { border-left: 0; padding: 20px 0 0; border-top: 1px solid var(--line); }
+}
 .floating-body {
   margin: 0;
   height: 100dvh;

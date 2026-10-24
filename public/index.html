@@ -15,13 +15,14 @@
           ><span>KiCon<span class="brand-sub">ASIA 2026</span></span></a
         >
         <nav>
-          <span class="nav-active"
-            >同传工作台 <small>LIVE TRANSLATE</small></span
+          <a id="nav-workspace" class="nav-active" href="#workspace"
+            >同传工作台 <small>LIVE TRANSLATE</small></a
+          ><a id="nav-settings" href="#settings">配置</a
           ><a href="/screen" target="kicon-screen">观众屏幕 ↗</a>
         </nav>
         <span id="connection" class="connection">连接工作台…</span>
       </header>
-      <main>
+      <main id="workspace-page">
         <div class="intro">
           <div>
             <p class="eyebrow">LANGUAGE CONNECTS US.</p>
@@ -233,9 +234,14 @@ KiCon Asia = KiCon Asia
               ><button data-mode="en">English</button>
             </div>
             <div class="floating-option">
+              <div class="floating-launch-actions">
               <button id="open-floating" class="button secondary" aria-pressed="false">
                 ▣ 打开悬浮字幕
               </button>
+              <button id="open-desktop" class="button secondary" type="button">↗ 桌面字幕</button>
+              </div>
+              <p id="desktop-launch-status" class="hint" role="status" hidden></p>
+              <p class="hint">字号、配色和透明度自动保存；两种窗口分别记住大小。</p>
               <p id="floating-hint" class="hint" role="status">
                 独立置顶于其他窗口之上。拖动标题栏移动，拖动窗口边缘调整大小。
               </p>
@@ -302,6 +308,39 @@ KiCon Asia = KiCon Asia
           <span>KiCon Asia 2026 <i>/</i> A conversation without borders.</span
           ><span>原文识别 + 实时翻译 + 独立投屏</span>
         </footer>
+      </main>
+      <main id="settings-page" hidden>
+        <div class="intro">
+          <div><p class="eyebrow">MAKE IT YOURS.</p><h1>连接你的<span>同传模型。</span></h1><p class="intro-note">配置在本机保存，下一次开始同传时生效。</p></div>
+          <a class="text-button" href="#workspace">← 返回工作台</a>
+        </div>
+        <form id="settings-form" class="settings-form">
+          <div class="settings-fields">
+            <h2>模型连接</h2>
+            <label for="settings-base-url">Base URL</label>
+            <input id="settings-base-url" type="url" required autocomplete="off" spellcheck="false" />
+            <p class="hint">使用兼容 Qwen 实时翻译协议的服务。更改此地址时，默认同步生成实时连接地址。</p>
+            <label for="settings-model">模型 ID</label>
+            <input id="settings-model" type="text" required maxlength="200" autocomplete="off" spellcheck="false" />
+            <label for="settings-key">API Key <span id="settings-key-status" class="hint"></span></label>
+            <input id="settings-key" type="password" autocomplete="new-password" spellcheck="false" placeholder="留空保留已保存的密钥" maxlength="4096" />
+            <p class="hint">只在更换密钥时填写。已保存的密钥不会显示或回传到浏览器。</p>
+            <details class="settings-advanced">
+              <summary>高级：实时连接地址</summary>
+              <label for="settings-realtime-url">WebSocket URL</label>
+              <input id="settings-realtime-url" type="url" required autocomplete="off" spellcheck="false" />
+              <p class="hint">不同服务的实时路径可能不同。默认使用 /api-ws/v1/realtime；仅修改 HTTP 地址不会改变服务支持的协议。</p>
+            </details>
+            <div class="settings-actions"><button id="save-settings" type="submit" class="button primary">保存配置</button><button id="reload-settings" type="button" class="button secondary">撤销未保存修改</button></div>
+            <p id="settings-status" class="hint" role="status"></p>
+          </div>
+          <aside class="settings-notes">
+            <span class="number">CONFIG</span><h3>设置一次，下次即用。</h3>
+            <p>开始同传前保存配置。运行期间请先回到工作台停止同传或演示，以免中断正在处理的音频。</p>
+            <p>配置保存在本机，重启后仍保留。修改模型后，费用统计会按对应模型的已配置价格计算；未知单价会标记为未计价。</p>
+            <p>仅打开配置页不会停止采集。保存配置不会发起模型请求，也不会产生模型费用。</p>
+          </aside>
+        </form>
       </main>
     </div>
     <div id="projection" hidden>

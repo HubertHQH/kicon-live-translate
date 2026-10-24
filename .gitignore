@@ -5,3 +5,5 @@ node_modules/
 recordings/
 artifacts/
 *.log
+.local/
+release/

@@ -9,18 +9,27 @@ import { Transcript, sessionConfig, validateStart } from "./protocol.js";
 import { readJournal } from "./archive.js";
 import { UsageMeter, pricingFor } from "./usage.js";
 import { exportText, exportSRT } from "../public/display.js";
+import { validateSettings, saveSettings } from "./settings.js";
+import { createOverlayLauncher } from "./overlay.js";
+import { readDisplayPreferences, writeDisplayPreferences } from "./display-preferences.js";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const port = Number(process.env.PORT || 3210);
+let port = Number(process.env.PORT || 3210);
 const host = process.env.HOST || "127.0.0.1";
-const model = process.env.QWEN_MODEL || "qwen3.8-livetranslate-flash-realtime";
-const key = process.env.QWEN_API_KEY;
-const pricing = pricingFor(model);
+let model = process.env.QWEN_MODEL || "qwen3.8-livetranslate-flash-realtime";
+let key = process.env.QWEN_API_KEY;
+let baseURL = process.env.QWEN_BASE_URL || "https://maas.qianwenaiapi.com/compatible-mode/v1";
+let pricing = pricingFor(model);
 const usageMode = process.env.QWEN_USAGE_MODE || "per_response";
 const token = randomBytes(32).toString("hex");
-const realtimeURL =
+let realtimeURL =
   process.env.QWEN_REALTIME_URL ||
   "wss://maas.qianwenaiapi.com/api-ws/v1/realtime";
+let configSaving = false;
+const configPath = process.env.CONFIG_ENV_FILE || join(root, ".env");
+const displayPath = process.env.DISPLAY_SETTINGS_FILE || join(root, ".local", "display.json");
+const launchOverlay = createOverlayLauncher(root, port);
+const publicConfig = () => ({ baseURL, model, realtimeURL, configured: !!key && key !== "replace_with_your_key", token });
 const archiveDir = process.env.RECORDINGS_DIR || join(root, "recordings");
 await mkdir(archiveDir, { recursive: true });
 const files = new Map(
@@ -58,6 +67,7 @@ let state = {
     lines: 3,
     frozen: false,
     blank: false,
+    ...readDisplayPreferences(displayPath),
   },
 };
 const send = (ws, data) => {
@@ -221,10 +231,11 @@ function connectTarget(current, target, terms) {
 }
 
 function start(ws, options, demo = false) {
+  if (configSaving) throw Error("配置正在保存，请稍后开始。");
   if (run) throw new Error("已有控制台正在运行，请先停止当前会话。");
   const { mode, terms } = validateStart(options);
   if (!demo && (!key || key === "replace_with_your_key"))
-    throw new Error("请先在服务端 .env 配置 QWEN_API_KEY。");
+    throw new Error("请先在“配置”页面填写并保存 API Key。");
   const id = `${new Date().toISOString().replace(/[:.]/g, "-")}-${randomUUID().slice(0, 8)}`;
   const targets =
     mode === "auto" ? ["en", "zh"] : [mode === "zh-en" ? "en" : "zh"];
@@ -260,6 +271,7 @@ function start(ws, options, demo = false) {
   );
   update({
     status: demo ? "demo" : "connecting",
+    model,
     mode,
     rows: [],
     error: null,
@@ -337,16 +349,45 @@ const server = createServer(async (req, res) => {
     "default-src 'self'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; frame-ancestors 'none'",
   );
   const url = new URL(req.url, `http://${req.headers.host}`);
+  if (req.method === "POST" && ["/api/config", "/api/overlay"].includes(url.pathname)) {
+    const json = (status, data) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(JSON.stringify(data)); };
+    if (req.headers.origin !== `http://${req.headers.host}` || req.headers["x-kicon-token"] !== token)
+      return json(403, { error: "请求未授权，请刷新控制台后重试。" });
+    if (url.pathname === "/api/overlay") {
+      try { await launchOverlay(); return json(200, { message: "已请求打开桌面字幕；已有窗口将刷新并显示。" }); }
+      catch (error) { return json(500, { error: safeError(error) }); }
+    }
+    if (!req.headers["content-type"]?.startsWith("application/json")) return json(415, { error: "需要 JSON 格式。" });
+    if (run || configSaving) return json(409, { error: "请先停止同传或演示，再保存配置。" });
+    configSaving = true;
+    try {
+      let body = "", size = 0;
+      for await (const chunk of req) {
+        size += chunk.length;
+        if (size > 16384) { json(413, { error: "配置内容过长。" }); return; }
+        body += chunk.toString("utf8");
+      }
+      let input;
+      try { input = JSON.parse(body); } catch { return json(400, { error: "配置格式无效。" }); }
+      let settings;
+      try { settings = validateSettings(input || {}, { key }); }
+      catch (error) { return json(400, { error: safeError(error) }); }
+      try { await saveSettings(configPath, settings); }
+      catch { return json(500, { error: "无法保存配置，请检查本地配置文件的写入权限。" }); }
+      ({ baseURL, model, realtimeURL, key } = settings);
+      pricing = pricingFor(model);
+      broadcast({ type: "config", config: publicConfig() });
+      return json(200, { ...publicConfig(), message: "配置已保存，下次开始同传时生效。" });
+    } catch {
+      if (!res.headersSent) json(400, { error: "请求中断或格式无效，请重试。" });
+    } finally { configSaving = false; }
+  }
   if (req.method !== "GET") return res.writeHead(405).end();
   try {
     if (url.pathname === "/api/config") {
       res.setHeader("Content-Type", "application/json");
       return res.end(
-        JSON.stringify({
-          model,
-          configured: !!key && key !== "replace_with_your_key",
-          token,
-        }),
+        JSON.stringify(publicConfig()),
       );
     }
     if (url.pathname === "/api/recordings") {
@@ -467,7 +508,11 @@ wss.on("connection", (ws) => {
             ? state.frozenRows
             : structuredClone(state.rows)
           : null;
+        let saveFailed = false;
+        try { writeDisplayPreferences(displayPath, next); }
+        catch { saveFailed = true; }
         update({ display: next, frozenRows });
+        if (saveFailed) send(ws, { type: "error", message: "显示设置已应用，但未能保存到本地，请检查项目目录写入权限。" });
       }
     } catch (e) {
       send(ws, { type: "error", message: safeError(e) });
@@ -515,16 +560,33 @@ try {
 } catch {
   /* A damaged old journal must not prevent a new session. */
 }
-server.listen(port, host, () =>
-  console.log(
-    `KiCon Live · http://localhost:${port}\nProjection · http://localhost:${port}/screen\nModel · ${model}`,
-  ),
-);
+server.on("error", (error) => {
+  if (process.parentPort && error.code === "EADDRINUSE" && port !== 0) {
+    port = 0;
+    server.listen(port, host);
+  } else {
+    console.error("本地字幕服务无法启动：", error.code || "UNKNOWN");
+    process.parentPort?.postMessage({ type: "startup-error" });
+    shutdown();
+    process.exitCode = 1;
+  }
+});
+server.on("listening", () => {
+  port = server.address().port;
+  console.log(`KiCon Live · http://localhost:${port}\nProjection · http://localhost:${port}/screen\nModel · ${model}`);
+  process.parentPort?.postMessage({ type: "ready", port });
+});
+server.listen(port, host);
 function shutdown() {
   clearInterval(heartbeat);
+  const journal = run?.archive;
+  const flushed = !journal || journal.writableFinished || journal.destroyed ? Promise.resolve()
+    : new Promise((resolve) => { journal.once("finish", resolve); journal.once("error", resolve); });
   endRun();
   clients.forEach((ws) => ws.terminate());
-  server.close();
+  server.close(() => { flushed.then(() => process.parentPort?.postMessage({ type: "stopped" })); });
+  server.closeIdleConnections();
 }
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
+process.parentPort?.on("message", ({ data }) => { if (data?.type === "shutdown") shutdown(); });

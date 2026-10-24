@@ -24,6 +24,24 @@ let renderQueued = false,
 let floatingWindow = null,
   floatingStage = null,
   openingFloating = false;
+let settingsDirty = false, savingSettings = false;
+function fillSettings() {
+  if (!config) return;
+  $("settings-base-url").value = config.baseURL || "";
+  $("settings-model").value = config.model || "";
+  $("settings-realtime-url").value = config.realtimeURL || "";
+  $("settings-key").value = "";
+  $("settings-key-status").textContent = config.configured ? "已配置 · 留空保留" : "尚未配置";
+  settingsDirty = false;
+}
+function showPage() {
+  if (screen) return;
+  const settings = location.hash === "#settings";
+  $("workspace-page").hidden = settings;
+  $("settings-page").hidden = !settings;
+  $("nav-settings").classList.toggle("nav-active", settings);
+  $("nav-workspace").classList.toggle("nav-active", !settings);
+}
 const active = () =>
   ["connecting", "live", "demo", "stopping"].includes(state.status);
 const notify = (message) => {
@@ -70,6 +88,7 @@ async function connect() {
       return r.json();
     });
     $("model-name").textContent = config.model;
+    if (!settingsDirty) fillSettings();
     socket = new WebSocket(
       `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws?role=${screen ? "viewer" : "control"}&token=${encodeURIComponent(config.token)}`,
     );
@@ -80,7 +99,11 @@ async function connect() {
     });
     socket.addEventListener("message", async ({ data }) => {
       const msg = JSON.parse(data);
-      if (msg.type === "started") {
+      if (msg.type === "config") {
+        config = msg.config;
+        $("model-name").textContent = config.model;
+        if (!settingsDirty) fillSettings();
+      } else if (msg.type === "started") {
         localRun = true;
         awaitingStart = false;
       } else if (msg.type === "state") {
@@ -287,6 +310,10 @@ function render() {
   }
   $("connection").textContent = connected ? "● 工作台已连接" : "○ 工作台离线";
   $("connection").classList.toggle("offline", !connected);
+  $("save-settings").disabled = !connected || active() || savingSettings;
+  $("settings-form").classList.toggle("session-active", active());
+  if (active() && !savingSettings) $("settings-status").textContent = "同传或演示正在运行，请先停止后保存。切换页面不会中断采集。";
+  else if ($("settings-status").textContent.startsWith("同传或演示正在运行")) $("settings-status").textContent = "";
   renderUsage();
   $("status").textContent = preparing ? "准备音频…" : labels[state.status];
   $("status-dot").className =
@@ -407,7 +434,7 @@ async function begin(demo = false) {
     persist();
     if (!demo) {
       if (!config.configured)
-        throw Error("请在项目 .env 中配置 API Key，然后重新启动服务。");
+        throw Error("请先在“配置”页面填写并保存 API Key。");
       capture = new AudioCapture(
         (buffer) => {
           if (socket?.readyState !== WebSocket.OPEN) return;
@@ -564,7 +591,20 @@ async function toggleFloating() {
   let opened;
   try {
     // Must run within the user's click. Let the browser remember placement.
-    opened = await window.documentPictureInPicture.requestWindow({ width: 800, height: 340 });
+    let size = { width: 800, height: 340 };
+    try {
+      const previous = JSON.parse(localStorage.getItem("kicon-floating-size"));
+      if (previous && [previous.width, previous.height].every((n) => Number.isFinite(n) && n >= 100 && n <= 10000)) size = previous;
+    } catch {}
+    opened = await window.documentPictureInPicture.requestWindow({ width: size.width, height: size.height });
+    const saveSize = () => {
+      if (opened.innerWidth < 100 || opened.innerHeight < 100) return;
+      try { localStorage.setItem("kicon-floating-size", JSON.stringify({ width: opened.innerWidth, height: opened.innerHeight })); }
+      catch { $("floating-hint").textContent = "浏览器未允许保存窗口大小，下次打开将使用默认尺寸。"; }
+    };
+    opened.addEventListener("resize", saveSize);
+    opened.addEventListener("pagehide", saveSize, { once: true });
+    saveSize();
     floatingWindow = opened;
     const doc = opened.document;
     doc.documentElement.lang = "zh-CN";
@@ -607,6 +647,56 @@ async function toggleFloating() {
 }
 $("open-floating").onclick = toggleFloating;
 updateFloatingButton();
+async function postLocal(path, body = {}) {
+  const response = await fetch(path, {
+    method: "POST", headers: { "Content-Type": "application/json", "X-Kicon-Token": config?.token || "" },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json();
+  if (!response.ok) throw Error(data.error || "操作失败，请稍后重试。");
+  return data;
+}
+$("open-desktop").onclick = async () => {
+  $("open-desktop").disabled = true;
+  $("desktop-launch-status").hidden = false;
+  $("desktop-launch-status").textContent = "正在打开桌面字幕…";
+  try { $("desktop-launch-status").textContent = (await postLocal("/api/overlay")).message; }
+  catch (error) { $("desktop-launch-status").textContent = error.message; }
+  finally { $("open-desktop").disabled = false; }
+};
+$("settings-form").oninput = () => { settingsDirty = true; };
+$("settings-base-url").onchange = () => {
+  try {
+    const url = new URL("/api-ws/v1/realtime", $("settings-base-url").value);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    $("settings-realtime-url").value = url.href;
+  } catch {}
+};
+$("reload-settings").onclick = () => { fillSettings(); $("settings-status").textContent = "已恢复为当前保存的配置。"; };
+$("settings-form").onsubmit = async (event) => {
+  event.preventDefault();
+  if (savingSettings || active()) return;
+  savingSettings = true;
+  $("save-settings").disabled = true;
+  $("settings-form").querySelectorAll("input, #reload-settings").forEach((input) => { input.disabled = true; });
+  $("settings-status").textContent = "正在保存…";
+  try {
+    config = await postLocal("/api/config", {
+      baseURL: $("settings-base-url").value.trim(), model: $("settings-model").value.trim(),
+      realtimeURL: $("settings-realtime-url").value.trim(), key: $("settings-key").value,
+    });
+    fillSettings();
+    $("model-name").textContent = config.model;
+    $("settings-status").textContent = config.message;
+  } catch (error) { $("settings-status").textContent = error.message; }
+  finally {
+    savingSettings = false;
+    $("settings-form").querySelectorAll("input, #reload-settings").forEach((input) => { input.disabled = false; });
+    scheduleRender();
+  }
+};
+window.addEventListener("hashchange", showPage);
+showPage();
 if (nativeOverlay) {
   document.documentElement.classList.add("floating-root");
   document.body.classList.add("native-overlay");

@@ -11,12 +11,12 @@ const app = (await readFile(new URL("../public/app.js", import.meta.url), "utf8"
 
 async function setup(t, { supported = true, reject = false, native = false } = {}) {
   const dom = new JSDOM(html, { url: `http://localhost:3210/${native ? "screen" : ""}`, runScripts: "outside-only" });
-  const w = dom.window, frames = [], sent = [], windows = [];
+  const w = dom.window, frames = [], sent = [], windows = [], requestedSizes = [];
   let socket, requests = 0;
   Object.assign(w, {
     languageRows, sessionTiming, structuredClone,
     requestAnimationFrame: (cb) => frames.push(cb),
-    fetch: async () => ({ ok: true, json: async () => ({ model: "test", token: "test" }) }),
+    fetch: async () => ({ ok: true, json: async () => ({ model: "test", token: "test", baseURL: "https://example.com/v1", realtimeURL: "wss://example.com/api-ws/v1/realtime", configured: true }) }),
     WebSocket: class extends w.EventTarget {
       static OPEN = 1;
       readyState = 1;
@@ -27,13 +27,16 @@ async function setup(t, { supported = true, reject = false, native = false } = {
   });
   if (native) w.kiconDesktop = { isOverlay: true, close: () => sent.push({ native: "close" }), resize: (width, height) => sent.push({ native: "resize", width, height }) };
   if (supported) w.documentPictureInPicture = {
-    async requestWindow() {
+    async requestWindow(options) {
+      requestedSizes.push(options);
       requests++;
       if (reject) throw Error("browser denied PiP");
       const pip = new JSDOM("<!doctype html><html><head></head><body></body></html>", {
         url: "http://localhost:3210/",
       });
       const nativeClose = pip.window.close.bind(pip.window);
+      pip.window.innerWidth = options.width;
+      pip.window.innerHeight = options.height;
       pip.window.closed = false;
       pip.window.close = () => {
         if (pip.window.closed) return;
@@ -56,7 +59,7 @@ async function setup(t, { supported = true, reject = false, native = false } = {
   const receive = (msg) => socket.dispatchEvent(new w.MessageEvent("message", { data: JSON.stringify(msg) }));
   receive({ type: "state", state });
   while (frames.length) frames.shift()();
-  return { w, windows, sent, frames, state, receive, requests: () => requests,
+  return { w, windows, sent, frames, state, receive, requestedSizes, requests: () => requests,
     open: () => w.document.getElementById("open-floating").onclick() };
 }
 
@@ -118,6 +121,27 @@ test("rapid repeated clicks create only one floating window", async (t) => {
   assert.equal(f.requests(), 1);
 });
 
+test("PiP dimensions restore from local storage and resize/close updates them", async (t) => {
+  const f = await setup(t);
+  f.w.localStorage.setItem("kicon-floating-size", JSON.stringify({ width: 920, height: 410 }));
+  await f.open();
+  assert.equal(f.requestedSizes[0].width, 920);
+  assert.equal(f.requestedSizes[0].height, 410);
+  const pip = f.windows[0];
+  pip.innerWidth = 1100;
+  pip.innerHeight = 320;
+  pip.dispatchEvent(new pip.Event("resize"));
+  pip.close();
+  await f.open();
+  assert.equal(f.requestedSizes[1].width, 1100);
+  assert.equal(f.requestedSizes[1].height, 320);
+  f.windows[1].close();
+  f.w.localStorage.setItem("kicon-floating-size", '{"width":-1,"height":999999}');
+  await f.open();
+  assert.equal(f.requestedSizes[2].width, 800);
+  assert.equal(f.requestedSizes[2].height, 340);
+});
+
 test("floating colors update independently and browser PiP never claims desktop transparency", async (t) => {
   const f = await setup(t);
   await f.open();
@@ -166,4 +190,38 @@ test("desktop renderer uses genuine alpha, keeps caption text intact and provide
   doc.querySelector(".native-drag-bar button").click();
   assert.equal(f.sent.at(-1).native, "close");
   assert.equal(f.sent.some((m) => m.type === "stop"), false);
+});
+
+test("settings navigation preserves capture, save clears entered key, desktop button uses authenticated local endpoint", async (t) => {
+  const f = await setup(t), doc = f.w.document;
+  f.w.location.hash = "#settings";
+  f.w.dispatchEvent(new f.w.Event("hashchange"));
+  assert.equal(doc.getElementById("settings-page").hidden, false);
+  assert.equal(doc.getElementById("workspace-page").hidden, true);
+  assert.equal(doc.getElementById("save-settings").disabled, true);
+  assert.equal(f.sent.some((m) => m.type === "stop"), false);
+  assert.equal(doc.getElementById("settings-base-url").value, "https://example.com/v1");
+  assert.equal(doc.getElementById("settings-key").value, "");
+  f.state.status = "stopped";
+  f.receive({ type: "state", state: f.state });
+  while (f.frames.length) f.frames.shift()();
+  const requests = [];
+  f.w.fetch = async (path, options) => {
+    requests.push({ path, options });
+    return { ok: true, json: async () => ({ token: "test", model: "new-model", baseURL: "https://other.example/v1", realtimeURL: "wss://other.example/api-ws/v1/realtime", configured: true, message: "已保存" }) };
+  };
+  doc.getElementById("settings-base-url").value = "https://other.example/v1";
+  doc.getElementById("settings-base-url").dispatchEvent(new f.w.Event("change"));
+  assert.equal(doc.getElementById("settings-realtime-url").value, "wss://other.example/api-ws/v1/realtime");
+  doc.getElementById("settings-key").value = "new-test-key";
+  await doc.getElementById("settings-form").onsubmit(new f.w.Event("submit"));
+  assert.equal(requests[0].path, "/api/config");
+  assert.equal(JSON.parse(requests[0].options.body).key, "new-test-key");
+  assert.equal(requests[0].options.headers["X-Kicon-Token"], "test");
+  assert.equal(doc.getElementById("settings-key").value, "");
+  assert.equal(f.w.localStorage.getItem("new-test-key"), null);
+  await doc.getElementById("open-desktop").onclick();
+  assert.equal(requests[1].path, "/api/overlay");
+  assert.equal(requests[1].options.headers["X-Kicon-Token"], "test");
+  assert.equal(doc.getElementById("open-desktop").disabled, false);
 });
