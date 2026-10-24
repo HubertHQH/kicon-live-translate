@@ -140,6 +140,20 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
     const controller = await connect("control"),
       viewer = await connect("viewer"),
       rival = await connect("control");
+    const appearance = wait(viewer, (m) => m.state?.display.floatingOpacity === 0);
+    controller.send(JSON.stringify({ type: "display", display: {
+      floatingZhColor: "#ff8800", floatingEnColor: "#00aaff", floatingBackground: "#123456", floatingOpacity: -20,
+    } }));
+    const appearanceState = (await appearance).state.display;
+    assert.equal(appearanceState.floatingZhColor, "#ff8800");
+    assert.equal(appearanceState.floatingEnColor, "#00aaff");
+    const invalid = wait(viewer, (m) => m.state?.display.floatingOpacity === 100);
+    controller.send(JSON.stringify({ type: "display", display: {
+      floatingZhColor: "url(https://invalid)", floatingEnColor: null, floatingOpacity: 200,
+    } }));
+    const sanitized = (await invalid).state.display;
+    assert.equal(sanitized.floatingZhColor, "#ff8800");
+    assert.equal(sanitized.floatingEnColor, undefined);
     viewer.send(JSON.stringify({ type: "start", mode: "auto" }));
     const live = wait(viewer, (m) => m.state?.status === "live");
     controller.send(JSON.stringify({ type: "start", mode: "auto", terms: [] }));
@@ -173,6 +187,7 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
     sockets.push(reconnect);
     const restored = (await wait(reconnect, (m) => m.type === "state")).state;
     assert.deepEqual(restored.frozenRows, snapshot.frozenRows);
+    assert.deepEqual(restored.display, snapshot.display, "new desktop and browser viewers receive identical display settings");
     assert.equal(restored.usage.totalTokens, 240);
     const exportResult = await fetch(
       `${origin}/api/export/${snapshot.sessionId}.txt`,
@@ -189,6 +204,23 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
     const stopped = wait(viewer, (m) => m.state?.status === "stopped");
     controller.send(JSON.stringify({ type: "stop" }));
     await stopped;
+    const blanked = wait(viewer, (m) => m.state?.display.blank);
+    controller.send(JSON.stringify({ type: "display", display: { blank: true } }));
+    await blanked;
+    const demoState = wait(viewer, (m) => m.state?.status === "demo");
+    const firstComplete = wait(viewer, (m) => m.row?.id.endsWith(":demo:0:en") && m.row.final);
+    const nextSentence = wait(viewer, (m) => m.row?.id.endsWith(":demo:1:zh"));
+    controller.send(JSON.stringify({ type: "demo", mode: "auto", terms: [] }));
+    const freshDemo = (await demoState).state;
+    assert.equal(freshDemo.display.frozen, false);
+    assert.equal(freshDemo.display.blank, false);
+    assert.equal(freshDemo.frozenRows, null);
+    assert.equal(freshDemo.display.floatingZhColor, "#ff8800");
+    assert.match((await firstComplete).row.text, /open-source hardware/);
+    assert.ok((await nextSentence).row.text);
+    const demoStopped = wait(viewer, (m) => m.state?.status === "stopped");
+    controller.send(JSON.stringify({ type: "stop" }));
+    await demoStopped;
     failNext = true;
     const failed = wait(viewer, (m) => m.state?.status === "error");
     controller.send(JSON.stringify({ type: "start", mode: "en-zh" }));

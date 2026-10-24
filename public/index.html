@@ -232,6 +232,28 @@ KiCon Asia = KiCon Asia
               ><button data-mode="zh">中文</button
               ><button data-mode="en">English</button>
             </div>
+            <div class="floating-option">
+              <button id="open-floating" class="button secondary" aria-pressed="false">
+                ▣ 打开悬浮字幕
+              </button>
+              <p id="floating-hint" class="hint" role="status">
+                独立置顶于其他窗口之上。拖动标题栏移动，拖动窗口边缘调整大小。
+              </p>
+              <details class="floating-colors">
+                <summary>悬浮窗配色与透明度</summary>
+                <label for="floating-zh-color">中文字色 <input id="floating-zh-color" type="color" value="#edf2e6" /></label>
+                <label for="floating-en-color">英文字色 <input id="floating-en-color" type="color" value="#d7e8bd" /></label>
+                <label for="floating-background">背景颜色 <input id="floating-background" type="color" value="#192923" /></label>
+                <label for="floating-opacity">背景透明度 <output id="floating-opacity-value">0% · 实色</output></label>
+                <input id="floating-opacity" type="range" min="0" max="100" value="0" />
+                <div class="floating-color-preview" aria-label="悬浮字幕配色预览">
+                  <div id="floating-color-sample"><span lang="zh-CN">让每一种语言，都被听见。</span><span lang="en">A conversation without borders.</span></div>
+                </div>
+                <button id="floating-reset-colors" class="text-button" type="button">恢复默认配色</button>
+                <p class="hint">向右越透明：0% 为实色，100% 为全透明，文字不跟随背景淡出。透明仅适用于桌面透明字幕窗口；浏览器画中画仍为实色背景。</p>
+                <p class="hint">双击项目中的 start-overlay.cmd 打开桌面透明字幕。拖动顶部移动，拖动右下角调整大小。</p>
+              </details>
+            </div>
             <label for="font-size"
               >字幕字号 <output id="font-value">44 px</output></label
             ><input id="font-size" type="range" min="24" max="88" value="44" />
@@ -312,5 +334,17 @@ KiCon Asia = KiCon Asia
         ><button id="fullscreen" class="button">⛶ 全屏 / F</button>
       </div>
     </div>
+    <template id="floating-toolbar-template">
+      <div class="floating-toolbar" aria-label="悬浮字幕设置">
+        <select aria-label="悬浮字幕语言">
+          <option value="bilingual">双语</option>
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+        </select>
+        <button type="button" data-action="smaller" aria-label="减小字幕字号">A−</button>
+        <button type="button" data-action="larger" aria-label="增大字幕字号">A+</button>
+        <button type="button" data-action="close" aria-label="关闭悬浮字幕">关闭</button>
+      </div>
+    </template>
   </body>
 </html>

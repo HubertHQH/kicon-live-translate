@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "start": "node --env-file-if-exists=.env server/index.js",
+    "overlay": "node --env-file-if-exists=.env desktop/launch.cjs",
     "dev": "node --watch --env-file-if-exists=.env server/index.js",
     "test": "node --test test/*.test.js",
+    "test:overlay": "node scripts/check-overlay.cjs",
     "check:api": "node --env-file-if-exists=.env scripts/check-api.js",
     "test:transport": "node scripts/smoke.js"
   },
@@ -15,5 +17,9 @@
   },
   "dependencies": {
     "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "jsdom": "^29.1.1"
   }
 }

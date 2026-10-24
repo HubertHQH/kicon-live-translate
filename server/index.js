@@ -268,6 +268,8 @@ function start(ws, options, demo = false) {
     demo,
     sessionId: id,
     usage: current.meter.snapshot(),
+    // A new demo must not inherit a previous session's held/blank projection.
+    ...(demo ? { display: { ...state.display, frozen: false, blank: false }, frozenRows: null } : {}),
   });
   if (demo) {
     const pairs = [
@@ -454,6 +456,12 @@ wss.on("connection", (ws) => {
           next.lines = Math.max(1, Math.min(5, Math.round(d.lines)));
         if (typeof d.frozen === "boolean") next.frozen = d.frozen;
         if (typeof d.blank === "boolean") next.blank = d.blank;
+        for (const key of ["floatingZhColor", "floatingEnColor", "floatingBackground"]) {
+          if (d[key] === null) delete next[key];
+          else if (typeof d[key] === "string" && /^#[0-9a-f]{6}$/i.test(d[key])) next[key] = d[key];
+        }
+        if (Number.isFinite(d.floatingOpacity))
+          next.floatingOpacity = Math.max(0, Math.min(100, d.floatingOpacity));
         const frozenRows = next.frozen
           ? state.display.frozen
             ? state.frozenRows

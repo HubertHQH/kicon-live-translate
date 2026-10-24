@@ -2,6 +2,7 @@ import { AudioCapture } from "./audio.js";
 import { languageRows, sessionTiming } from "./display.js";
 const $ = (id) => document.getElementById(id);
 const screen = location.pathname === "/screen";
+const nativeOverlay = screen && window.kiconDesktop?.isOverlay === true;
 $("control").hidden = screen;
 $("projection").hidden = !screen;
 let state = {
@@ -20,6 +21,9 @@ let renderQueued = false,
   frozenRows = null,
   wasFrozen = false,
   retry = 0;
+let floatingWindow = null,
+  floatingStage = null,
+  openingFloating = false;
 const active = () =>
   ["connecting", "live", "demo", "stopping"].includes(state.status);
 const notify = (message) => {
@@ -138,6 +142,12 @@ async function connect() {
 }
 
 function scheduleRender() {
+  // The controller's animation frames may stop when another app covers it.
+  // Render the visible PiP directly from incoming events in that case.
+  if (nativeOverlay || (floatingWindow && !floatingWindow.closed)) {
+    render();
+    return;
+  }
   if (renderQueued) return;
   renderQueued = true;
   requestAnimationFrame(() => {
@@ -151,6 +161,7 @@ function renderStage(stage, rows) {
   stage.dataset.mode = d.mode;
   stage.classList.toggle("blank", !!d.blank);
   stage.style.setProperty("--caption-size", `${d.fontSize}px`);
+  if (stage.classList.contains("floating-stage")) applyFloatingAppearance(stage, nativeOverlay);
   stage.querySelector(".stage-indicator").textContent = state.demo
     ? "DEMO · 演示字幕"
     : "LIVE TRANSLATION";
@@ -159,6 +170,7 @@ function renderStage(stage, rows) {
     : d.frozen
       ? "画面暂停 / HOLD"
       : `${labels[state.status]} / ${state.status.toUpperCase()}`;
+  stage.dataset.alert = !connected || state.demo || d.frozen || state.status === "error" ? "true" : "false";
   for (const lang of ["zh", "en"]) {
     const lane = stage.querySelector(`[data-lane="${lang}"]`);
     lane.hidden = d.mode !== "bilingual" && d.mode !== lang;
@@ -255,6 +267,14 @@ function render() {
     screen ? $("projection-stage") : $("preview"),
     frozenRows || state.rows,
   );
+  if (floatingStage && floatingWindow && !floatingWindow.closed) {
+    renderStage(floatingStage, frozenRows || state.rows);
+    const toolbar = floatingWindow.document.querySelector(".floating-toolbar");
+    toolbar.querySelector("select").value = d.mode;
+    toolbar.querySelector("select").disabled = !connected;
+    toolbar.querySelector('[data-action="smaller"]').disabled = !connected || d.fontSize <= 24;
+    toolbar.querySelector('[data-action="larger"]').disabled = !connected || d.fontSize >= 88;
+  }
   if (screen) {
     $("screen-status").textContent = connected
       ? state.demo
@@ -300,6 +320,14 @@ function render() {
   $("font-size").value = d.fontSize;
   $("font-value").textContent = `${d.fontSize} px`;
   $("line-count").value = d.lines;
+  const colors = floatingAppearance(d);
+  $("floating-zh-color").value = colors.zh;
+  $("floating-en-color").value = colors.en;
+  $("floating-background").value = colors.background;
+  const transparency = 100 - colors.opacity;
+  $("floating-opacity").value = transparency;
+  $("floating-opacity-value").textContent = `${transparency}%${transparency === 100 ? " · 全透明" : transparency === 0 ? " · 实色" : ""}`;
+  applyFloatingAppearance($("floating-color-sample"), true);
   $("freeze").textContent = d.frozen ? "▶ 恢复字幕更新" : "Ⅱ 暂停字幕更新";
   $("freeze").setAttribute("aria-pressed", String(d.frozen));
   $("blank").textContent = d.blank ? "▣ 恢复投屏画面" : "▱ 临时黑屏";
@@ -438,6 +466,22 @@ async function stop() {
 function setDisplay(patch) {
   send({ type: "display", display: patch });
 }
+function floatingAppearance(d) {
+  const light = d.theme === "light";
+  return {
+    zh: d.floatingZhColor || (light ? "#24392e" : "#edf2e6"),
+    en: d.floatingEnColor || (light ? "#3f623e" : "#d7e8bd"),
+    background: d.floatingBackground || (light ? "#f0f0dc" : "#192923"),
+    opacity: d.floatingOpacity ?? 100,
+  };
+}
+function applyFloatingAppearance(stage, transparent) {
+  const colors = floatingAppearance(state.display);
+  stage.style.setProperty("--floating-zh", colors.zh);
+  stage.style.setProperty("--floating-en", colors.en);
+  const rgb = colors.background.slice(1).match(/../g).map((part) => parseInt(part, 16));
+  stage.style.setProperty("--floating-bg", `rgba(${rgb.join(", ")}, ${transparent ? colors.opacity / 100 : 1})`);
+}
 function download(extension) {
   if (!state.rows.length) {
     notify("还没有可导出的字幕，请先开始同传或演示。");
@@ -483,11 +527,121 @@ $("line-count").onchange = () =>
   setDisplay({ lines: Number($("line-count").value) });
 $("freeze").onclick = () => setDisplay({ frozen: !state.display.frozen });
 $("blank").onclick = () => setDisplay({ blank: !state.display.blank });
+for (const [id, key] of [["floating-zh-color", "floatingZhColor"], ["floating-en-color", "floatingEnColor"], ["floating-background", "floatingBackground"]]) {
+  $(id).oninput = () => setDisplay({ [key]: $(id).value });
+}
+$("floating-opacity").oninput = () => setDisplay({ floatingOpacity: 100 - Number($("floating-opacity").value) });
+$("floating-reset-colors").onclick = () => setDisplay({ floatingZhColor: null, floatingEnColor: null, floatingBackground: null, floatingOpacity: 100 });
 $("open-screen").onclick = () => {
   const opened = window.open("/screen", "kicon-screen");
   if (!opened)
     notify("浏览器拦截了投屏窗口，请允许弹出窗口，或点击顶部“观众屏幕”。");
 };
+const floatingSupported = typeof window.documentPictureInPicture?.requestWindow === "function";
+function updateFloatingButton() {
+  const opened = floatingWindow && !floatingWindow.closed;
+  $("open-floating").textContent = opened ? "▣ 关闭悬浮字幕" : "▣ 打开悬浮字幕";
+  $("open-floating").setAttribute("aria-pressed", String(!!opened));
+  $("open-floating").disabled = openingFloating;
+  $("floating-hint").textContent = !floatingSupported
+    ? "当前浏览器不支持桌面置顶。请在桌面版 Chrome / Edge 中打开本页后使用悬浮字幕。"
+    : opened
+      ? "悬浮字幕已置顶。拖动标题栏移动，拖动边缘缩放；请保持控制台打开。"
+      : "独立置顶于其他窗口之上。拖动标题栏移动，拖动窗口边缘调整大小。";
+}
+async function toggleFloating() {
+  if (openingFloating) return;
+  if (floatingWindow && !floatingWindow.closed) {
+    floatingWindow.close();
+    return;
+  }
+  if (!floatingSupported) {
+    notify(`当前浏览器不支持悬浮置顶。请用桌面版 Chrome / Edge 打开 ${location.origin}，再点击“打开悬浮字幕”。`);
+    return;
+  }
+  openingFloating = true;
+  updateFloatingButton();
+  let opened;
+  try {
+    // Must run within the user's click. Let the browser remember placement.
+    opened = await window.documentPictureInPicture.requestWindow({ width: 800, height: 340 });
+    floatingWindow = opened;
+    const doc = opened.document;
+    doc.documentElement.lang = "zh-CN";
+    doc.title = "KiCon · 悬浮字幕";
+    const style = doc.createElement("link");
+    style.rel = "stylesheet";
+    style.href = new URL("/style.css", location.href).href;
+    doc.head.append(style);
+    doc.body.className = "floating-body";
+    floatingStage = $("projection-stage").cloneNode(true);
+    floatingStage.id = "floating-stage";
+    floatingStage.className = "stage floating-stage";
+    floatingStage.querySelectorAll(".language-label").forEach((label) => label.remove());
+    const toolbar = $("floating-toolbar-template").content.cloneNode(true);
+    doc.body.replaceChildren(toolbar, floatingStage);
+    doc.querySelector("select").onchange = (event) => setDisplay({ mode: event.target.value });
+    for (const [action, delta] of [["smaller", -4], ["larger", 4]]) {
+      doc.querySelector(`[data-action="${action}"]`).onclick = () =>
+        setDisplay({ fontSize: Math.max(24, Math.min(88, state.display.fontSize + delta)) });
+    }
+    doc.querySelector('[data-action="close"]').onclick = () => opened.close();
+    opened.addEventListener("pagehide", () => {
+      if (floatingWindow !== opened) return;
+      floatingWindow = null;
+      floatingStage = null;
+      updateFloatingButton();
+      $("floating-hint").textContent = "悬浮字幕已关闭，同传不受影响。若窗口未能保持打开，请改用桌面版 Chrome / Edge。";
+      scheduleRender();
+    }, { once: true });
+    render();
+  } catch {
+    opened?.close();
+    floatingWindow = null;
+    floatingStage = null;
+    notify("无法打开悬浮字幕。请在桌面版 Chrome / Edge 中重试，并允许浏览器使用画中画功能。");
+  } finally {
+    openingFloating = false;
+    updateFloatingButton();
+  }
+}
+$("open-floating").onclick = toggleFloating;
+updateFloatingButton();
+if (nativeOverlay) {
+  document.documentElement.classList.add("floating-root");
+  document.body.classList.add("native-overlay");
+  $("projection-stage").className = "stage floating-stage";
+  $("projection-stage").querySelectorAll(".language-label").forEach((label) => label.remove());
+  const bar = document.createElement("div");
+  bar.className = "native-drag-bar";
+  bar.title = "拖动移动字幕窗口";
+  const close = document.createElement("button");
+  close.textContent = "×";
+  close.setAttribute("aria-label", "关闭桌面字幕");
+  close.onclick = () => window.kiconDesktop.close();
+  bar.append(close);
+  const grip = document.createElement("button");
+  grip.className = "native-resize-grip";
+  grip.textContent = "◢";
+  grip.setAttribute("aria-label", "拖动调整字幕窗口大小，方向键微调");
+  let drag = null;
+  grip.onpointerdown = (e) => {
+    if (e.button !== 0) return;
+    grip.setPointerCapture(e.pointerId);
+    drag = { x: e.screenX, y: e.screenY, width: window.innerWidth, height: window.innerHeight };
+  };
+  grip.onpointermove = (e) => {
+    if (drag) window.kiconDesktop.resize(drag.width + e.screenX - drag.x, drag.height + e.screenY - drag.y);
+  };
+  grip.onpointerup = grip.onpointercancel = grip.onlostpointercapture = () => { drag = null; };
+  grip.onkeydown = (e) => {
+    const sizes = { ArrowRight: [20, 0], ArrowLeft: [-20, 0], ArrowDown: [0, 20], ArrowUp: [0, -20] };
+    if (!sizes[e.key]) return;
+    e.preventDefault();
+    window.kiconDesktop.resize(window.innerWidth + sizes[e.key][0], window.innerHeight + sizes[e.key][1]);
+  };
+  document.body.append(bar, grip);
+}
 $("export").onclick = () => download("txt");
 $("srt-zh").onclick = () => download("zh.srt");
 $("srt-en").onclick = () => download("en.srt");
@@ -533,6 +687,7 @@ document.addEventListener("fullscreenchange", () =>
 );
 window.addEventListener("resize", scheduleRender);
 window.addEventListener("beforeunload", () => {
+  floatingWindow?.close();
   capture?.stream?.getTracks().forEach((t) => t.stop());
   socket?.close();
 });
