@@ -104,6 +104,32 @@ test("floating captions update while controller animation frames are suspended; 
   assert.match(f.windows[1].document.body.textContent, /恢复更新/);
 });
 
+test("physical line limit syncs across preview, PiP and desktop without dropping transcript text", async (t) => {
+  for (const native of [false, true]) {
+    const f = await setup(t, { native });
+    if (!native) await f.open();
+    const field = f.w.document.getElementById("caption-max-lines");
+    field.value = "1";
+    field.dispatchEvent(new f.w.Event("change"));
+    assert.deepEqual(f.sent.at(-1), { type: "display", display: { maxLines: 1 } });
+    f.state.display.maxLines = 1;
+    const fullText = "长句必须保留完整记录，不因显示行数限制丢失。".repeat(20);
+    f.state.rows = [{ id: "long", kind: "source", language: "zh", text: fullText, final: true }];
+    f.receive({ type: "state", state: f.state });
+    const stages = [f.w.document.getElementById(native ? "projection-stage" : "preview")];
+    if (!native) stages.push(f.windows[0].document.getElementById("floating-stage"));
+    for (const stage of stages) {
+      assert.equal(stage.classList.contains("line-limited"), true);
+      assert.equal(stage.style.getPropertyValue("--caption-max-lines"), "1");
+      assert.equal(stage.querySelector('[data-lane="zh"] .caption-text p').textContent, fullText);
+    }
+    f.state.display.maxLines = 0;
+    f.receive({ type: "state", state: f.state });
+    for (const stage of stages) assert.equal(stage.classList.contains("line-limited"), false);
+    assert.equal(f.w.document.querySelector("button[data-theme]"), null);
+  }
+});
+
 test("unsupported or rejected PiP shows a useful message and leaves the controller usable", async (t) => {
   for (const options of [{ supported: false }, { reject: true }]) {
     const f = await setup(t, options);

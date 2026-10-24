@@ -8,7 +8,7 @@ $("projection").hidden = !screen;
 let state = {
   status: "idle",
   rows: [],
-  display: { mode: "bilingual", fontSize: 44, lines: 3, theme: "dark" },
+  display: { mode: "bilingual", fontSize: 44, lines: 3, maxLines: 2, theme: "dark" },
 };
 let socket,
   capture,
@@ -184,6 +184,9 @@ function renderStage(stage, rows) {
   stage.dataset.mode = d.mode;
   stage.classList.toggle("blank", !!d.blank);
   stage.style.setProperty("--caption-size", `${d.fontSize}px`);
+  const maxLines = d.maxLines ?? 2;
+  stage.classList.toggle("line-limited", maxLines > 0);
+  stage.style.setProperty("--caption-max-lines", String(maxLines));
   if (stage.classList.contains("floating-stage")) applyFloatingAppearance(stage, nativeOverlay);
   stage.querySelector(".stage-indicator").textContent = state.demo
     ? "DEMO · 演示字幕"
@@ -340,13 +343,10 @@ function render() {
     b.classList.toggle("selected", b.dataset.mode === d.mode);
     b.setAttribute("aria-pressed", String(b.dataset.mode === d.mode));
   }
-  for (const b of document.querySelectorAll("button[data-theme]")) {
-    b.classList.toggle("selected", b.dataset.theme === d.theme);
-    b.setAttribute("aria-pressed", String(b.dataset.theme === d.theme));
-  }
   $("font-size").value = d.fontSize;
   $("font-value").textContent = `${d.fontSize} px`;
   $("line-count").value = d.lines;
+  $("caption-max-lines").value = d.maxLines ?? 2;
   const colors = floatingAppearance(d);
   $("floating-zh-color").value = colors.zh;
   $("floating-en-color").value = colors.en;
@@ -545,13 +545,12 @@ $("terms").onchange = persist;
 document
   .querySelectorAll("[data-mode]")
   .forEach((b) => (b.onclick = () => setDisplay({ mode: b.dataset.mode })));
-document
-  .querySelectorAll("button[data-theme]")
-  .forEach((b) => (b.onclick = () => setDisplay({ theme: b.dataset.theme })));
 $("font-size").oninput = () =>
   setDisplay({ fontSize: Number($("font-size").value) });
 $("line-count").onchange = () =>
   setDisplay({ lines: Number($("line-count").value) });
+$("caption-max-lines").onchange = () =>
+  setDisplay({ maxLines: Number($("caption-max-lines").value) });
 $("freeze").onclick = () => setDisplay({ frozen: !state.display.frozen });
 $("blank").onclick = () => setDisplay({ blank: !state.display.blank });
 for (const [id, key] of [["floating-zh-color", "floatingZhColor"], ["floating-en-color", "floatingEnColor"], ["floating-background", "floatingBackground"]]) {

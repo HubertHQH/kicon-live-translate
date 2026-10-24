@@ -496,6 +496,8 @@ textarea {
   margin-bottom: 10px;
 }
 .caption-text {
+  font-size: calc(var(--caption-size) * 0.57);
+  line-height: 1.45;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -505,12 +507,21 @@ textarea {
   overflow-wrap: anywhere;
 }
 .caption-text p {
-  font-size: calc(var(--caption-size) * 0.57);
-  line-height: 1.45;
+  font-size: inherit;
+  line-height: inherit;
+  position: relative;
   letter-spacing: 0.1px;
   font-weight: 450;
   margin: 0 0 0.35em;
   flex-shrink: 0;
+}
+.line-limited .caption-text {
+  /* The parent owns the actual font/line-height, including responsive sizes.
+     Keep the last N physical text lines; never clamp away the newest words. */
+  max-height: min(100%, calc(var(--caption-max-lines) * 1lh));
+}
+.line-limited .caption-text p {
+  margin: 0;
 }
 .caption-text p:last-child {
   margin-bottom: 0;
@@ -522,6 +533,8 @@ textarea {
   opacity: 0.55;
 }
 .caption-text .partial:last-child:after {
+  /* An in-flow caret could wrap by itself and hide the latest text in 1-line mode. */
+  position: absolute;
   content: "";
   width: 4px;
   height: 0.78em;
@@ -682,46 +695,6 @@ output {
   color: var(--muted);
   font-weight: 400;
 }
-.theme-options {
-  display: flex;
-  gap: 10px;
-}
-.theme-option {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 7px;
-  padding: 7px;
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  color: var(--muted);
-  font-size: 10px;
-}
-.theme-option.selected {
-  border-color: #719260;
-  background: #eef3e3;
-  color: var(--green);
-}
-.swatch {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 31px;
-  height: 26px;
-  font-family: Georgia, serif;
-  font-size: 14px;
-  border-radius: 2px;
-}
-.swatch.dark {
-  background: #243a2e;
-  color: #e1eacb;
-}
-.swatch.light {
-  background: #efeedb;
-  color: #3d5130;
-  border: 1px solid #dadccb;
-}
 .output-actions {
   border-top: 1px solid var(--line);
   margin-top: 22px;
@@ -827,7 +800,7 @@ output {
   font-size: 12px;
   margin-bottom: 16px;
 }
-.fullscreen-stage .caption-text p {
+.fullscreen-stage .caption-text {
   font-size: var(--caption-size);
   line-height: 1.5;
 }
@@ -886,7 +859,7 @@ body:not(.native-overlay):has(#projection:not([hidden])) {
   .live-panel {
     padding-top: 28px;
   }
-  .caption-text p {
+  .caption-text {
     font-size: calc(var(--caption-size) * 0.7);
   }
 }
@@ -919,9 +892,6 @@ body:not(.native-overlay):has(#projection:not([hidden])) {
   .output > input,
   .output > select {
     align-self: center;
-  }
-  .theme-options {
-    grid-column: 1;
   }
   .projection-tip {
     grid-column: 3;
@@ -1008,7 +978,7 @@ body:not(.native-overlay):has(#projection:not([hidden])) {
     height: 360px;
     padding: 22px 18px;
   }
-  .caption-text p {
+  .caption-text {
     font-size: calc(var(--caption-size) * 0.5);
   }
   .page-footer {
@@ -1024,7 +994,7 @@ body:not(.native-overlay):has(#projection:not([hidden])) {
   .fullscreen-stage .stage-indicator {
     font-size: 7px;
   }
-  .fullscreen-stage .caption-text p {
+  .fullscreen-stage .caption-text {
     font-size: min(var(--caption-size), 7vw);
   }
   .fullscreen-stage .stage-footer {
@@ -1207,7 +1177,7 @@ body:not(.native-overlay):has(#projection:not([hidden])) {
   border: 0;
   padding-top: 0;
 }
-.floating-stage .caption-text p {
+.floating-stage .caption-text {
   font-size: var(--caption-size);
   line-height: 1.35;
 }

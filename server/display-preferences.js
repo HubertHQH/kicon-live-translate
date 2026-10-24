@@ -7,6 +7,7 @@ export function displayPreferences(input) {
   if (["dark", "light"].includes(d.theme)) result.theme = d.theme;
   if (Number.isFinite(d.fontSize)) result.fontSize = Math.max(24, Math.min(88, d.fontSize));
   if (Number.isFinite(d.lines)) result.lines = Math.max(1, Math.min(5, Math.round(d.lines)));
+  if (Number.isFinite(d.maxLines)) result.maxLines = Math.max(0, Math.min(5, Math.round(d.maxLines)));
   for (const key of ["floatingZhColor", "floatingEnColor", "floatingBackground"])
     if (typeof d[key] === "string" && /^#[0-9a-f]{6}$/i.test(d[key])) result[key] = d[key];
   if (Number.isFinite(d.floatingOpacity)) result.floatingOpacity = Math.max(0, Math.min(100, d.floatingOpacity));

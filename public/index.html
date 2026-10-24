@@ -263,6 +263,18 @@ KiCon Asia = KiCon Asia
             <label for="font-size"
               >字幕字号 <output id="font-value">44 px</output></label
             ><input id="font-size" type="range" min="24" max="88" value="44" />
+            <div class="caption-line-setting">
+            <label for="caption-max-lines">每种语言最多显示几行</label>
+            <select id="caption-max-lines" aria-describedby="caption-max-lines-hint">
+              <option value="1">1 行</option>
+              <option value="2" selected>2 行</option>
+              <option value="3">3 行</option>
+              <option value="4">4 行</option>
+              <option value="5">5 行</option>
+              <option value="0">随窗口高度</option>
+            </select>
+            <p id="caption-max-lines-hint" class="hint">长句超出行数时，用最新内容替换旧行。双语分别计数；完整字幕仍保留在记录中。</p>
+            </div>
             <label for="line-count">保留的字幕段落</label
             ><select id="line-count">
               <option value="1">最近 1 段</option>
@@ -271,14 +283,6 @@ KiCon Asia = KiCon Asia
               <option value="4">最近 4 段</option>
               <option value="5">最近 5 段</option>
             </select>
-            <label>屏幕主题</label>
-            <div class="theme-options">
-              <button data-theme="dark" class="theme-option selected">
-                <span class="swatch dark">Aa</span>深色</button
-              ><button data-theme="light" class="theme-option">
-                <span class="swatch light">Aa</span>浅色
-              </button>
-            </div>
             <div class="output-actions">
               <button id="freeze" class="button secondary">
                 Ⅱ 暂停字幕更新</button

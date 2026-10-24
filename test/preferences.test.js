@@ -16,8 +16,10 @@ test("display settings retain zero alpha and explicit colors, exclude temporary 
     assert.deepEqual(readDisplayPreferences(file), {});
     writeDisplayPreferences(file, { mode: "en", theme: "light", fontSize: 65, lines: 1, floatingZhColor: "#123456", floatingOpacity: 0, frozen: true, blank: true });
     assert.deepEqual(readDisplayPreferences(file), { mode: "en", theme: "light", fontSize: 65, lines: 1, floatingZhColor: "#123456", floatingOpacity: 0 });
-    writeDisplayPreferences(file, { floatingZhColor: null, floatingOpacity: 100 });
-    assert.deepEqual(readDisplayPreferences(file), { floatingOpacity: 100 });
+    writeDisplayPreferences(file, { floatingZhColor: null, floatingOpacity: 100, maxLines: 0 });
+    assert.deepEqual(readDisplayPreferences(file), { floatingOpacity: 100, maxLines: 0 });
+    writeDisplayPreferences(file, { maxLines: 99 });
+    assert.equal(readDisplayPreferences(file).maxLines, 5);
     await writeFile(file, "{broken");
     assert.deepEqual(readDisplayPreferences(file), {});
   } finally { await rm(dir, { recursive: true, force: true }); }
@@ -58,7 +60,7 @@ test("a restarted server broadcasts saved appearance with pause and blank cleare
   try {
     const first = await start();
     const changed = once(first.ws, "message");
-    first.ws.send(JSON.stringify({ type: "display", display: { fontSize: 67, mode: "en", lines: 2, floatingOpacity: 0, floatingBackground: "#123456", frozen: true, blank: true } }));
+    first.ws.send(JSON.stringify({ type: "display", display: { fontSize: 67, mode: "en", lines: 2, maxLines: 1, floatingOpacity: 0, floatingBackground: "#123456", frozen: true, blank: true } }));
     await changed;
     first.ws.terminate();
     await stop();
@@ -67,6 +69,7 @@ test("a restarted server broadcasts saved appearance with pause and blank cleare
     assert.equal(d.fontSize, 67);
     assert.equal(d.mode, "en");
     assert.equal(d.lines, 2);
+    assert.equal(d.maxLines, 1);
     assert.equal(d.floatingOpacity, 0);
     assert.equal(d.floatingBackground, "#123456");
     assert.equal(d.frozen, false);

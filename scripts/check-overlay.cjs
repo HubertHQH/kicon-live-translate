@@ -31,7 +31,7 @@ if (!process.versions.electron) {
       await win.loadFile(path.join(__dirname, "../test/fixtures/overlay-rendering.html"));
       const result = await reported;
       clearTimeout(timer);
-      console.log(result.ok ? "PASS: native/PiP fonts at 24/44/65/88px in a 280px-high window; transparency, per-language colors and projector background (Chromium)." : `FAIL: ${result.message}`);
+      console.log(result.ok ? "PASS: fonts, transparency and colors; actual 1/2-line CJK/English/emoji wrapping retains latest text across preview/projector/floating sizes (Chromium)." : `FAIL: ${result.message}`);
       app.exit(result.ok ? 0 : 1);
     }
     catch (error) { console.error(error.message); app.exit(1); }

@@ -65,6 +65,7 @@ let state = {
     fontSize: 44,
     theme: "dark",
     lines: 3,
+    maxLines: 2,
     frozen: false,
     blank: false,
     ...readDisplayPreferences(displayPath),
@@ -495,6 +496,8 @@ wss.on("connection", (ws) => {
           next.fontSize = Math.max(24, Math.min(88, d.fontSize));
         if (Number.isFinite(d.lines))
           next.lines = Math.max(1, Math.min(5, Math.round(d.lines)));
+        if (Number.isFinite(d.maxLines))
+          next.maxLines = Math.max(0, Math.min(5, Math.round(d.maxLines)));
         if (typeof d.frozen === "boolean") next.frozen = d.frozen;
         if (typeof d.blank === "boolean") next.blank = d.blank;
         for (const key of ["floatingZhColor", "floatingEnColor", "floatingBackground"]) {
