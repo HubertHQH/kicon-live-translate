@@ -73,7 +73,7 @@ export class Transcript {
   }
 }
 
-export function sessionConfig(target, terms = []) {
+export function sessionConfig(target, terms = [], responsiveness = "fast") {
   const phrases = Object.fromEntries(
     terms.map(([zh, en]) => (target === "en" ? [zh, en] : [en, zh])),
   );
@@ -86,7 +86,7 @@ export function sessionConfig(target, terms = []) {
           turn_detection: {
             type: "server_vad",
             threshold: 0.5,
-            silence_duration_ms: 600,
+            silence_duration_ms: responsiveness === "balanced" ? 600 : 300,
           },
         },
       },
@@ -102,6 +102,9 @@ export function validateStart(value) {
   if (!["auto", "zh-en", "en-zh"].includes(value.mode))
     throw new Error("请选择有效的翻译方向。");
   const terms = value.terms ?? [];
+  const responsiveness = value.responsiveness ?? "fast";
+  if (!["fast", "balanced"].includes(responsiveness))
+    throw new Error("请选择有效的字幕响应方式。");
   if (
     !Array.isArray(terms) ||
     terms.length > 100 ||
@@ -114,5 +117,5 @@ export function validateStart(value) {
   ) {
     throw new Error("术语应为最多 100 组中英词汇，每个词汇不超过 100 字。");
   }
-  return { mode: value.mode, terms };
+  return { mode: value.mode, terms, responsiveness };
 }

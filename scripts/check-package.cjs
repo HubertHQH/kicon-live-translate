@@ -24,6 +24,7 @@ async function launch() {
   const report = JSON.parse(readFileSync(path.join(profile, "smoke-result.json")));
   if (!report.ok) throw Error(report.message);
   if (!source && !report.packaged) throw Error("Test must use the packaged application");
+  if (report.version !== JSON.parse(readFileSync(path.join(root, "package.json"))).version) throw Error("Packaged version does not match source version");
   reports.push(report);
   console.log(`PASS: packaged app ${report.restart ? "restart" : "first launch"}; ${report.checks.join(", ")}`);
 }

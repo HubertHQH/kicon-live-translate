@@ -3,6 +3,13 @@ const assert = require("node:assert/strict");
 const { existsSync, readFileSync, writeFileSync } = require("node:fs");
 const path = require("node:path");
 module.exports = async ({ controller, getOverlay, origin, dataDir }) => {
+  const { app, Menu } = require("electron");
+  assert.ok(Menu.getApplicationMenu().getMenuItemById("user-guide"));
+  assert.ok(Menu.getApplicationMenu().getMenuItemById("about-kicon"));
+  if (app.isPackaged) {
+    const guide = readFileSync(path.join(process.resourcesPath, "安装与迁移说明.txt"), "utf8");
+    assert.ok(guide.includes(`版本 ${app.getVersion()}`), "Installed help must match the application version");
+  }
   const run = (code) => controller.webContents.executeJavaScript(code);
   const waitFor = async (fn, label, timeout = 12000) => {
     const end = Date.now() + timeout;
@@ -62,6 +69,6 @@ module.exports = async ({ controller, getOverlay, origin, dataDir }) => {
   await run("document.getElementById('start').click()");
   await waitFor(() => run("document.getElementById('status').textContent === '已停止' && !document.getElementById('demo').disabled"), "stop demo");
   overlay.close();
-  return { restart: previous, packaged: require("electron").app.isPackaged, runtime: process.versions.electron,
+  return { restart: previous, packaged: app.isPackaged, version: app.getVersion(), runtime: process.versions.electron,
     node: process.versions.node, checks: ["standalone service", "no bundled API key", "config save/reload", "display save/reload", "desktop overlay API", "transparent background", "67px font", "always on top", "window size save/reload", "streaming demo", "projector window", "audio worklet", "clean shutdown"] };
 };

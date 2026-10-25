@@ -31,7 +31,8 @@ class PCMRecorder extends AudioWorkletProcessor {
       sum += mono[i] * mono[i];
     }
     this.samples.push(...this.resampler.push(mono));
-    if (this.samples.length >= 1600) {
+    // Forward about 50 ms at a time; do not wait for sentence boundaries.
+    if (this.samples.length >= 800) {
       this.port.postMessage({ level: Math.sqrt(sum / mono.length) });
       this.emit();
     }

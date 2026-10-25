@@ -74,6 +74,12 @@
             <p id="direction-hint" class="hint">
               自动双向使用 2 个实时会话，分别生成中、英文字幕。
             </p>
+            <label for="responsiveness">字幕响应</label>
+            <select id="responsiveness" aria-describedby="responsiveness-hint">
+              <option value="fast">快速断句 · 0.3 秒停顿</option>
+              <option value="balanced">稳健断句 · 0.6 秒停顿</option>
+            </select>
+            <p id="responsiveness-hint" class="hint"></p>
             <details class="terms">
               <summary>会议术语 <span>KiCad / PCB</span></summary>
               <p class="hint">每行一组：中文 = English。开始新会话时生效。</p>

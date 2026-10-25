@@ -93,6 +93,17 @@ test("term direction reverses and 3.8 configuration uses output_modalities", () 
   assert.throws(() => validateStart({ mode: "invalid" }));
   assert.throws(() => validateStart({ mode: "auto", terms: [["a"]] }));
 });
+
+test("response profiles shorten silence without disabling continuous text output", () => {
+  assert.equal(validateStart({ mode: "auto" }).responsiveness, "fast");
+  for (const [profile, silence] of [["fast", 300], ["balanced", 600]]) {
+    assert.equal(validateStart({ mode: "zh-en", responsiveness: profile }).responsiveness, profile);
+    const config = sessionConfig("en", [], profile).session;
+    assert.deepEqual(config.output_modalities, ["text"]);
+    assert.deepEqual(config.audio.input.turn_detection, { type: "server_vad", threshold: 0.5, silence_duration_ms: silence });
+  }
+  assert.throws(() => validateStart({ mode: "auto", responsiveness: "unknown" }));
+});
 test("resampler preserves phase across arbitrary packet boundaries at 44.1k and 48k", () => {
   for (const rate of [16000, 44100, 48000]) {
     const input = Float32Array.from(

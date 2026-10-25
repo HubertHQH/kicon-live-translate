@@ -34,6 +34,7 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
   await once(mock, "listening");
   let failNext = false,
     sessions = 0;
+  const detections = [];
   mock.on("connection", (ws) => {
     let target,
       emitted = false;
@@ -41,6 +42,7 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
       const e = JSON.parse(raw);
       if (e.type === "session.update") {
         sessions++;
+        detections.push(e.session.audio.input.turn_detection);
         target = e.session.translation.language;
         if (failNext)
           return ws.send(
@@ -56,6 +58,7 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
       if (e.type === "input_audio_buffer.append" && !emitted) {
         emitted = true;
         for (const event of [
+          { type: "response.text.delta", item_id: "out", delta: target === "en" ? "Test" : "测试" },
           {
             type: "conversation.item.input_audio_transcription.completed",
             item_id: "src",
@@ -170,6 +173,7 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
     await live;
     assert.equal((await postConfig({})).status, 409, "running sessions cannot change configuration");
     assert.equal(sessions, 2);
+    assert.deepEqual(detections.map(d => d.silence_duration_ms), [300, 300]);
     const rejection = wait(rival, (m) => m.type === "error");
     rival.send(JSON.stringify({ type: "start", mode: "auto" }));
     assert.match((await rejection).message, /已有/);
@@ -177,11 +181,13 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
       viewer,
       (m) => m.row?.language === "zh" && m.row?.kind === "translation",
     );
+    const partial = wait(viewer, m => m.row?.kind === "translation" && m.row.language === "en" && !m.row.final);
     const usageUpdate = wait(
       viewer,
       (m) => m.type === "usage" && m.usage.totalTokens === 240,
     );
     controller.send(Buffer.alloc(3200));
+    assert.equal((await partial).row.text, "Test", "relay must forward partial text before completion");
     await row;
     const totals = (await usageUpdate).usage;
     assert.equal(totals.estimatedCost, 0.012);
@@ -234,8 +240,9 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
     await demoStopped;
     failNext = true;
     const failed = wait(viewer, (m) => m.state?.status === "error");
-    controller.send(JSON.stringify({ type: "start", mode: "en-zh" }));
+    controller.send(JSON.stringify({ type: "start", mode: "en-zh", responsiveness: "balanced" }));
     assert.match((await failed).state.error, /test upstream failure/);
+    assert.equal(detections.at(-1).silence_duration_ms, 600);
     assert.equal((await postConfig({ baseURL: "javascript:alert(1)", model: "test" })).status, 400);
     const replacement = { baseURL: "https://example.com/compatible-mode/v1", model: "new-model", key: "replacement-test-key" };
     const savedConfig = wait(viewer, (m) => m.type === "config");

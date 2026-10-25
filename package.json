@@ -1,6 +1,6 @@
 {
   "name": "kicon-live-translate",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "main": "desktop/application.cjs",
@@ -16,7 +16,9 @@
     "test:transport": "node scripts/smoke.js",
     "pack:win": "electron-builder --win --x64 --dir",
     "dist:win": "electron-builder --win nsis --x64",
-    "test:package": "node scripts/audit-package.cjs && node scripts/check-package.cjs"
+    "test:package": "node scripts/audit-package.cjs && node scripts/check-package.cjs",
+    "test:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-installer.ps1",
+    "release:bundle": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-release.ps1"
   },
   "engines": {
     "node": ">=22"

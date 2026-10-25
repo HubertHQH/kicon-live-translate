@@ -9,9 +9,10 @@ const html = await readFile(new URL("../public/index.html", import.meta.url), "u
 const app = (await readFile(new URL("../public/app.js", import.meta.url), "utf8"))
   .replace(/^import .*;\r?\n/gm, "");
 
-async function setup(t, { supported = true, reject = false, native = false } = {}) {
+async function setup(t, { supported = true, reject = false, native = false, stored } = {}) {
   const dom = new JSDOM(html, { url: `http://localhost:3210/${native ? "screen" : ""}`, runScripts: "outside-only" });
   const w = dom.window, frames = [], sent = [], windows = [], requestedSizes = [];
+  if (stored) w.localStorage.setItem("kicon-settings", JSON.stringify(stored));
   let socket, requests = 0;
   Object.assign(w, {
     languageRows, sessionTiming, structuredClone,
@@ -62,6 +63,26 @@ async function setup(t, { supported = true, reject = false, native = false } = {
   return { w, windows, sent, frames, state, receive, requestedSizes, requests: () => requests,
     open: () => w.document.getElementById("open-floating").onclick() };
 }
+
+test("response preference survives reload and is sent only when starting a session", async (t) => {
+  const f = await setup(t), select = f.w.document.getElementById("responsiveness");
+  assert.equal(select.value, "fast");
+  assert.equal(select.disabled, true, "cannot change an active session's detection settings");
+  f.state.status = "stopped";
+  f.receive({ type: "state", state: f.state });
+  while (f.frames.length) f.frames.shift()();
+  assert.equal(select.disabled, false);
+  select.value = "balanced";
+  select.dispatchEvent(new f.w.Event("change"));
+  const stored = JSON.parse(f.w.localStorage.getItem("kicon-settings"));
+  assert.equal(stored.responsiveness, "balanced");
+  assert.equal(f.sent.length, 0);
+  const reloaded = await setup(t, { stored });
+  assert.equal(reloaded.w.document.getElementById("responsiveness").value, "balanced");
+  f.w.document.getElementById("demo").click();
+  assert.equal(f.sent.at(-1).type, "demo");
+  assert.equal(f.sent.at(-1).responsiveness, "balanced");
+});
 
 test("floating captions update while controller animation frames are suspended; controls, freeze and blank stay in sync", async (t) => {
   const f = await setup(t);

@@ -69,6 +69,8 @@ const saved = (() => {
 })();
 if (saved.terms) $("terms").value = saved.terms;
 if (saved.direction) $("direction").value = saved.direction;
+if (["fast", "balanced"].includes(saved.responsiveness))
+  $("responsiveness").value = saved.responsiveness;
 function persist() {
   try {
     localStorage.setItem(
@@ -76,6 +78,7 @@ function persist() {
       JSON.stringify({
         terms: $("terms").value,
         direction: $("direction").value,
+        responsiveness: $("responsiveness").value,
       }),
     );
   } catch {}
@@ -335,6 +338,7 @@ function render() {
     "input-kind",
     "device",
     "direction",
+    "responsiveness",
     "terms",
     "refresh-devices",
   ])
@@ -461,7 +465,8 @@ async function begin(demo = false) {
       if (!connected) throw Error("服务连接已中断，请重试。");
     }
     awaitingStart = true;
-    send({ type: demo ? "demo" : "start", mode: $("direction").value, terms });
+    send({ type: demo ? "demo" : "start", mode: $("direction").value, terms,
+      responsiveness: $("responsiveness").value });
   } catch (e) {
     await capture?.stop();
     capture = null;
@@ -537,10 +542,17 @@ $("direction").onchange = () => {
   persist();
   $("direction-hint").textContent =
     $("direction").value === "auto"
-      ? "自动双向使用 2 个实时会话，分别生成中、英文字幕。"
-      : "固定演讲方向使用 1 个会话，同时显示原文与译文。";
+      ? "自动双向使用 2 个会话，两侧均显示各自译文。发言语言固定时，选单向可更早显示识别原文。"
+      : "固定方向使用 1 个会话，原文直接显示识别结果，译文边生成边显示。";
 };
 $("direction").onchange();
+$("responsiveness").onchange = () => {
+  persist();
+  $("responsiveness-hint").textContent = $("responsiveness").value === "fast"
+    ? "缩短静音断句等待；模型仍可能等待上下文，实际提速因语音而异。若断句过碎可切回稳健。下次开始生效。"
+    : "停顿约 0.6 秒再断句，适合语速较慢、停顿较多的演讲。下次开始生效。";
+};
+$("responsiveness").onchange();
 $("terms").onchange = persist;
 document
   .querySelectorAll("[data-mode]")

@@ -68,6 +68,15 @@ function createController() {
       { label: "配置", click: () => { controller.webContents.executeJavaScript("location.hash = '#settings'"); } },
       { label: "桌面字幕", click: () => { openOverlay().catch(() => dialog.showErrorBox("无法打开字幕", "请关闭程序后重试。")); } },
       { label: "打开本机数据文件夹", click: () => { shell.openPath(dataDir); } },
+      { id: "user-guide", label: "使用说明", click: async () => {
+        const guide = app.isPackaged ? path.join(process.resourcesPath, "安装与迁移说明.txt") : path.join(__dirname, "../docs/安装与迁移说明.txt");
+        const error = await shell.openPath(guide);
+        if (error) dialog.showErrorBox("无法打开使用说明", "请阅读交付压缩包中的安装与使用说明。");
+      } },
+      { id: "about-kicon", label: "关于", click: () => { dialog.showMessageBox(controller, {
+        type: "info", title: "关于 KiCon 实时同传", message: `KiCon Live Translate ${app.getVersion()}`,
+        detail: "Windows x64 · 中英实时字幕\n实时翻译需要联网和使用者自己的 API Key。\n使用说明和本机数据文件夹可从此菜单打开。", buttons: ["确定"],
+      }); } },
       { type: "separator" }, { label: "退出", role: "quit" },
     ] },
     { label: "编辑", submenu: [{ role: "undo" }, { role: "redo" }, { type: "separator" }, { role: "cut" }, { role: "copy" }, { role: "paste" }, { role: "selectAll" }] },

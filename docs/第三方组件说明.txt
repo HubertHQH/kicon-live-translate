@@ -1,0 +1,13 @@
+第三方组件说明 · KiCon Live Translate 1.0.1
+
+运行依赖为 Electron（含 Chromium / Node.js）与 ws WebSocket 库。原始许可证随包保留，实际组件版本见交付清单.json。
+
+licenses/Electron-LICENSE.txt：Electron 发行版的许可证。
+licenses/Chromium-LICENSES.html：Electron 发行版提供的 Chromium 及相关组件声明集合。
+licenses/ws-LICENSE.txt：ws 的许可证和版权声明。
+
+安装目录中还包含 Electron LICENSE 和 LICENSES.chromium.html；ws 许可证在 app.asar 的依赖目录内。本说明不替代原始许可证，也不包含云端 Qwen 服务授权。
+electron-builder、jsdom 等开发工具不会作为运行依赖装入应用。
+
+项目自身尚未声明面向公众的开源许可证；此次是二进制安装交付，不替项目所有者增设开源条款。源码再分发及授权由项目所有者另行确定。
+交付包不含云服务账号、Key 或额度，不代表 Qwen、Electron 或会议组织方提供支持或认证。

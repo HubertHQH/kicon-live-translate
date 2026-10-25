@@ -161,7 +161,7 @@ function connectTarget(current, target, terms) {
   });
   current.sockets.push(ws);
   const transcript = new Transcript(target, current.id);
-  ws.on("open", () => ws.send(JSON.stringify(sessionConfig(target, terms))));
+  ws.on("open", () => ws.send(JSON.stringify(sessionConfig(target, terms, current.responsiveness))));
   ws.on("message", (raw) => {
     if (run !== current) return;
     let e;
@@ -234,7 +234,7 @@ function connectTarget(current, target, terms) {
 function start(ws, options, demo = false) {
   if (configSaving) throw Error("配置正在保存，请稍后开始。");
   if (run) throw new Error("已有控制台正在运行，请先停止当前会话。");
-  const { mode, terms } = validateStart(options);
+  const { mode, terms, responsiveness } = validateStart(options);
   if (!demo && (!key || key === "replace_with_your_key"))
     throw new Error("请先在“配置”页面填写并保存 API Key。");
   const id = `${new Date().toISOString().replace(/[:.]/g, "-")}-${randomUUID().slice(0, 8)}`;
@@ -242,6 +242,7 @@ function start(ws, options, demo = false) {
     mode === "auto" ? ["en", "zh"] : [mode === "zh-en" ? "en" : "zh"];
   const current = {
     id,
+    responsiveness,
     targets,
     sockets: [],
     ready: new Set(),
@@ -264,6 +265,7 @@ function start(ws, options, demo = false) {
       type: "session",
       id,
       mode,
+      responsiveness,
       demo,
       model,
       startedAt: Date.now(),
@@ -274,6 +276,7 @@ function start(ws, options, demo = false) {
     status: demo ? "demo" : "connecting",
     model,
     mode,
+    responsiveness,
     rows: [],
     error: null,
     startedAt: Date.now(),

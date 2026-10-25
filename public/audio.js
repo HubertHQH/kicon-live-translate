@@ -10,7 +10,7 @@ export class AudioCapture {
         "音频采集需要 localhost 或 HTTPS，请在本机 Chrome / Edge 中打开。",
       );
     try {
-      this.context = new AudioContext({ sampleRate: 16000 });
+      this.context = new AudioContext({ sampleRate: 16000, latencyHint: "interactive" });
       await this.context.resume();
       this.stream =
         kind === "system"

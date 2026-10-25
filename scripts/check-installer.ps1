@@ -1,6 +1,14 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
-$installerFile = Join-Path $projectRoot 'release/KiCon-Live-Translate-Setup-1.0.0-x64.exe'
+function Get-ReleaseHash([string]$File) {
+  $stream = [IO.File]::OpenRead($File)
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try { return [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-', '').ToLowerInvariant() }
+  finally { $stream.Dispose(); $sha.Dispose() }
+}
+$releaseVersion = (Get-Content -Raw -LiteralPath (Join-Path $projectRoot 'package.json') | ConvertFrom-Json).version
+$installerFile = Join-Path $projectRoot "release/KiCon-Live-Translate-Setup-$releaseVersion-x64.exe"
+$installerHash = Get-ReleaseHash $installerFile
 $existing = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' | Get-ItemProperty | Where-Object { $_.DisplayName -like 'KiCon Live Translate*' }
 if ($existing) { throw 'An existing KiCon installation was found. Use a separate Windows test account for installer verification.' }
 foreach ($shortcutFolder in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))) {
@@ -32,5 +40,5 @@ try {
 if (Test-Path -LiteralPath $installedExe) { throw 'Uninstaller did not remove the temporary application.' }
 $remaining = Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' | Get-ItemProperty | Where-Object { $_.DisplayName -like 'KiCon Live Translate*' }
 if ($remaining) { throw 'Uninstaller left its registration behind.' }
-@{ ok = $tested; installer = (Split-Path $installerFile -Leaf); install = 'passed'; firstLaunchAndRestart = 'passed without external Node/npm'; uninstall = 'passed'; testedAt = [DateTime]::UtcNow.ToString('o') } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $artifactRoot 'installer-test.json')
+@{ ok = $tested; version = $releaseVersion; sha256 = $installerHash; installer = (Split-Path $installerFile -Leaf); install = 'passed'; firstLaunchAndRestart = 'passed without external Node/npm'; uninstall = 'passed'; testedAt = [DateTime]::UtcNow.ToString('o') } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $artifactRoot 'installer-test.json')
 Write-Output 'PASS: full NSIS installation, installed app first launch/restart, and uninstallation.'
