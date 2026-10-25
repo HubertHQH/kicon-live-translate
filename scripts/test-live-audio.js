@@ -1,29 +1,14 @@
 // Explicit live integration check; consumes API audio tokens.
 // Usage: node scripts/test-live-audio.js path/to/16k-mono-pcm16.wav [...]
 import WebSocket from "ws";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import assert from "node:assert/strict";
+import { readPCM16Wav } from "./lib/wav.js";
 const filenames = process.argv.slice(2);
 if (!filenames.length) throw Error("Pass a 16 kHz mono PCM16 WAV fixture.");
 const chunks = [];
 for (const file of filenames) {
-  const wav = await readFile(file);
-  assert.equal(wav.toString("ascii", 0, 4), "RIFF");
-  let pcm;
-  for (let offset = 12; offset + 8 <= wav.length; ) {
-    const kind = wav.toString("ascii", offset, offset + 4),
-      length = wav.readUInt32LE(offset + 4),
-      data = offset + 8;
-    if (kind === "fmt ") {
-      assert.equal(wav.readUInt16LE(data), 1);
-      assert.equal(wav.readUInt16LE(data + 2), 1);
-      assert.equal(wav.readUInt32LE(data + 4), 16000);
-      assert.equal(wav.readUInt16LE(data + 14), 16);
-    }
-    if (kind === "data") pcm = wav.subarray(data, data + length);
-    offset = data + length + (length % 2);
-  }
-  assert.ok(pcm?.length);
+  const pcm = await readPCM16Wav(file);
   chunks.push(pcm, Buffer.alloc(32000 * 2));
 }
 const pcm = Buffer.concat(chunks),
@@ -122,6 +107,7 @@ if (filenames.some((f) => f.endsWith("test-zh.wav")))
     ),
     "Chinese final sentence was truncated",
   );
+await mkdir("artifacts", { recursive: true });
 await writeFile(
   "artifacts/live-test-result.json",
   JSON.stringify({ testedAt: new Date().toISOString(), rows: result, usage: lastUsage }, null, 2),

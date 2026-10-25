@@ -12,7 +12,6 @@ $font = [System.Drawing.Font]::new('Segoe UI', 130, [System.Drawing.FontStyle]::
 $graphics.DrawString('K', $font, $ink, 62, 12)
 $graphics.FillRectangle($accent, 48, 177, 160, 12)
 $graphics.FillRectangle($gold, 48, 207, 112, 12)
-$canvas.Save((Join-Path $iconFolder 'icon.png'), [System.Drawing.Imaging.ImageFormat]::Png)
 $images = [System.Collections.Generic.List[byte[]]]::new()
 $sizes = @(16, 24, 32, 48, 64, 128, 256)
 foreach ($size in $sizes) {

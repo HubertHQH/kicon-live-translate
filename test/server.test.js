@@ -131,6 +131,7 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
     const config = await fetch(origin + "/api/config").then((r) => r.json());
     assert.ok(!JSON.stringify(config).includes("test-secret"));
     assert.equal((await fetch(origin + "/.env")).status, 404);
+    assert.equal((await fetch(origin + "/server/index.js")).status, 404);
     assert.equal(config.baseURL, "https://maas.qianwenaiapi.com/compatible-mode/v1");
     for (const route of ["/api/config", "/api/overlay"]) {
       assert.equal((await fetch(origin + route, { method: "POST" })).status, 403);
@@ -196,6 +197,8 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
       JSON.stringify({ type: "display", display: { frozen: true } }),
     );
     const snapshot = (await frozen).state;
+    const archiveList = await fetch(`${origin}/api/recordings`).then(r => r.json());
+    assert.ok(archiveList.length, "completed and in-progress sessions are discoverable in the local archive");
     assert.equal(snapshot.frozenRows.length, 3);
     const reconnect = new WebSocket(
       `ws://127.0.0.1:${port}/ws?role=viewer&token=${config.token}`,

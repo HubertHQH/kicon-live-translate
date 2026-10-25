@@ -13,7 +13,7 @@
     "test": "node --test test/*.test.js",
     "test:overlay": "node scripts/check-overlay.cjs",
     "check:api": "node --env-file-if-exists=.env scripts/check-api.js",
-    "test:transport": "node scripts/smoke.js",
+    "test:transport": "node --test test/server.test.js",
     "pack:win": "electron-builder --win --x64 --dir",
     "dist:win": "electron-builder --win nsis --x64",
     "test:package": "node scripts/audit-package.cjs && node scripts/check-package.cjs",

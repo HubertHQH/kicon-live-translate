@@ -1,9 +1,10 @@
 // Explicit paid diagnostic. Uses synthetic/local WAV fixtures, never records a mic.
 // node --env-file-if-exists=.env scripts/compare-latency.js file.wav [...]
 import WebSocket from "ws";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { writeFile, mkdir } from "node:fs/promises";
 import assert from "node:assert/strict";
 import { sessionConfig, Transcript } from "../server/protocol.js";
+import { readPCM16Wav } from "./lib/wav.js";
 
 const paths = process.argv.slice(2);
 assert.ok(paths.length, "Pass 16 kHz mono PCM16 WAV files");
@@ -11,22 +12,7 @@ assert.ok(process.env.QWEN_API_KEY, "Configure QWEN_API_KEY first");
 const chunks = [], segments = [];
 let duration = 0;
 for (const path of paths) {
-  const wav = await readFile(path);
-  assert.equal(wav.toString("ascii", 0, 4), "RIFF");
-  let pcm, valid = false;
-  for (let offset = 12; offset + 8 <= wav.length;) {
-    const length = wav.readUInt32LE(offset + 4), data = offset + 8;
-    if (wav.toString("ascii", offset, offset + 4) === "fmt ") {
-      assert.equal(wav.readUInt16LE(data), 1);
-      assert.equal(wav.readUInt16LE(data + 2), 1);
-      assert.equal(wav.readUInt32LE(data + 4), 16000);
-      assert.equal(wav.readUInt16LE(data + 14), 16);
-      valid = true;
-    }
-    if (wav.toString("ascii", offset, offset + 4) === "data") pcm = wav.subarray(data, data + length);
-    offset = data + length + length % 2;
-  }
-  assert.ok(valid && pcm?.length);
+  const pcm = await readPCM16Wav(path);
   segments.push({ file: path, startMs: duration, endMs: duration + pcm.length / 32 });
   chunks.push(pcm, Buffer.alloc(64000));
   duration += pcm.length / 32 + 2000;
