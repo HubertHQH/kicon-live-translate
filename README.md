@@ -1,86 +1,100 @@
-# KiCon Asia 2026 · Live Translate
+# KiCon Live Translate
 
-中英实时字幕工具：麦克风 / 调音台 / 电脑声音 → Qwen 语音识别与翻译 → 工作台、观众屏幕或置顶桌面字幕。
+**English** | [简体中文](README.zh-CN.md)
 
-当前交付版本：**1.0.1 · Windows x64 · 2026-10-25**。内置 Electron、Chromium、Node.js 和本地服务，目标电脑无需开发环境。安装本身可离线完成；实时识别、翻译需要互联网和使用者自己的 API Key。
+Real-time Chinese–English speech translation and live captions for KiCon Asia 2026. Capture a microphone, mixing console, or computer audio, translate with Qwen, and display captions in the workspace, on a projector, or in an always-on-top desktop overlay.
 
-## 给使用者：安装后如何开始
+Current release: **1.0.1 · Windows x64 · October 25, 2026**. The installer bundles Electron, Chromium, Node.js, and the local service. Users do not need a development environment or to build the app. Installation works offline; live recognition and translation require internet access and your own API key.
 
-1. 获取 `KiCon-Live-Translate-1.0.1-Windows-x64.zip`，解压到本地，先阅读“请先阅读-安装与使用.txt”。
-2. 运行 `KiCon-Live-Translate-Setup-1.0.1-x64.exe`，按向导安装，再打开桌面“KiCon 实时同传”。建议 Windows 11 x64，预留至少 1 GB 磁盘空间。本机已验证 Windows 11；Windows 10 x64、不同显卡及音频设备需在目标电脑试用。
-3. 打开顶部“配置”，填写自己的 API Key 并保存。程序不附带原作者的密钥、会议记录或个人设置。Key 输入框不回显已有密钥，留空表示保留。
-4. 返回工作台，先运行“预览演示字幕”。演示不采集声音、不连接付费模型，用它检查窗口和投屏。
-5. 停止演示，选择输入和发言语言，点击“开始同传”；看到“正在同传”后讲话。结束时点击“停止同传”，等待末句结束，再导出记录。
+The application interface and bundled offline guides are currently primarily in Chinese. This README includes the Chinese labels needed to follow the instructions.
 
-安装版不需要 `start.cmd`、`start-overlay.cmd`、源码或额外浏览器。按 **Alt → KiCon 同传 → 使用说明** 可打开离线帮助；“关于”可查看版本。
+## Download and get started
 
-完整步骤、排错、隐私及迁移方法见 [安装与迁移说明](docs/安装与迁移说明.txt)，版本变化见 [更新说明](docs/更新说明.txt)。
+- [Windows x64 installer (.exe)](https://github.com/HubertHQH/kicon-live-translate/releases/download/v1.0.1/KiCon-Live-Translate-Setup-1.0.1-x64.exe) — download and run directly.
+- [Complete distribution (.zip)](https://github.com/HubertHQH/kicon-live-translate/releases/download/v1.0.1/KiCon-Live-Translate-1.0.1-Windows-x64.zip) — the same installer, Chinese user guide, third-party licenses, release manifest, and checksums.
+- [Release notes and SHA-256 checksums](https://github.com/HubertHQH/kicon-live-translate/releases/tag/v1.0.1).
 
-## 模型配置
+The repository is currently private. Downloads require a GitHub account with access to this repository.
 
-| 配置 | 默认值 |
+1. Download the installer, or extract the ZIP and read `请先阅读-安装与使用.txt` first.
+2. Run `KiCon-Live-Translate-Setup-1.0.1-x64.exe` and launch **KiCon 实时同传** from the desktop or Start menu. Windows 11 x64 is recommended; allow at least 1 GB of disk space. Windows 11 has been tested locally. Windows 10 x64 and other graphics/audio hardware need testing on the target computer. This release does not target macOS, Linux, or 32-bit Windows; Windows ARM has not been validated.
+3. Open **Settings (配置)**, enter your own API key, and save. The installer includes no developer credentials, meeting recordings, or personal settings. An existing key is never shown in the input field; leaving it blank preserves the saved key.
+4. Return to the workspace and select **Preview demo captions (预览演示字幕)**. The demo captures no audio and makes no paid model requests. Use it to check the caption windows and projector setup.
+5. Stop the demo, select the audio input and speaking language, and click **Start interpreting (开始同传)**. Speak after the status shows **正在同传**. When finished, click **Stop interpreting (停止同传)**, wait for the final sentence, then export your records.
+
+The installed app does not need `start.cmd`, `start-overlay.cmd`, source files, or a separate browser. Press **Alt → KiCon 同传 → 使用说明** for the offline guide, or **关于** to check the version.
+
+See the [installation and migration guide](docs/安装与迁移说明.txt) and [release notes](docs/更新说明.txt) for additional details; both documents are in Chinese.
+
+## Model configuration
+
+| Setting | Default |
 | --- | --- |
 | Base URL | `https://maas.qianwenaiapi.com/compatible-mode/v1` |
-| 模型 ID | `qwen3.8-livetranslate-flash-realtime` |
-| 实时连接地址（高级选项） | `wss://maas.qianwenaiapi.com/api-ws/v1/realtime` |
-| API Key | 使用者自行填写 |
+| Model ID | `qwen3.8-livetranslate-flash-realtime` |
+| Realtime endpoint (advanced) | `wss://maas.qianwenaiapi.com/api-ws/v1/realtime` |
+| API key | Supplied by each user |
 
-这是本项目实际接入的模型，不是本地离线模型。更换地址或模型需兼容 Qwen 实时 WebSocket 协议，普通聊天 API 不能直接替代。默认模型不代表账号一定有权限。保存配置只验证格式，不验证远端权限或余额；下一次开始同传才使用新配置。运行期间不能保存配置。
+This is the model integrated by the project; it does not run locally. A replacement endpoint or model must support the Qwen realtime WebSocket protocol. A standard chat API is not a direct substitute. Your account must have access to the selected model.
 
-## 发言、字幕与费用
+Saving settings validates their format, not remote permissions or your balance. Changes apply to the next interpreting session. Settings cannot be saved while a session is running.
 
-- **中文演讲 / English talk**：固定方向使用一个会话，原文直接显示识别增量，译文边生成边显示。发言语言固定时优先选这一项。
-- **中英交替 · 自动双向**：相同音频发送到两个会话，分别输出中、英文；两侧都等待各自目标流，可能比单向原文晚显示，也增加用量。控制台另保存识别原文。
-- **字幕响应**：默认快速断句（300 ms 静音），可切回稳健断句（600 ms）。选项保存于当前控制台站点存储，下次开始生效。50 ms 音频小包和更短断句只是减少本地等待，尚未实测出稳定的大幅提速。
-- **会议术语**：每行 `中文 = English`，新会话生效。术语是模型提示，不能保证专有名词绝对准确。
-- **行数限制**：每种语言显示 1–5 行或随窗口高度，默认 2 行。超出时显示最新行，完整字幕仍保留；“保留的字幕段落”独立控制历史段落。
-- **暂停 / 黑屏 / 关闭字幕窗口**：只改变画面，采集和计费继续。停止采集请点“停止同传”；刷新或关闭采集控制台也会结束采集。退出前先停止并等待末句，可降低末句丢失风险。
-- **Token、时长和费用**：以服务端回报累计，显示时长及平均每分钟预估费用。流式生成时可能尚未回报；双向已合计，不能再乘二。缺少分类、价格或回报时显示“部分 / 未计价”，不代表免费。内置价格为历史参考，不自动更新，最终以服务商账单为准。
+## Speech, captions, and usage
 
-## 三种输出窗口
+- **Chinese talk → English / English talk → Chinese:** uses one session in a fixed direction. Source captions use recognition updates directly; translations appear as they are generated. Prefer this mode when the speaking language is fixed.
+- **Automatic bidirectional mode (中英交替 · 自动双向):** sends the same audio to two sessions, producing Chinese and English separately. Both caption streams wait for their respective target-language output, which may appear later than source captions in fixed-direction mode and increases usage. The console also keeps the recognized source text.
+- **Caption response:** fast segmentation is the default, with 300 ms of silence; the steadier option uses 600 ms. The selection is saved in the current console's site storage and applies to the next session. Smaller 50 ms audio packets and shorter silence thresholds reduce local waiting, but testing has not demonstrated a consistent large latency improvement.
+- **Conference terminology:** enter one `中文 = English` pair per line. Changes apply to new sessions. These are model hints, not a guarantee that every technical term will be translated correctly.
+- **Visible line limit:** show 1–5 lines per language, or adapt to the window height; the default is 2 lines. Overflow keeps the latest lines visible while retaining the full transcript. The retained-paragraph setting controls caption history separately.
+- **Pause, blank screen, or close a caption window:** these affect the display only; audio capture and billing continue. Click **停止同传** to stop capture. Refreshing or closing the capture console also ends capture. Stop and wait for the final sentence before exiting to reduce the risk of losing it.
+- **Tokens, duration, and cost:** usage accumulates from server reports, with session duration and estimated average cost per minute. Reports may arrive after streamed text. Bidirectional usage is already combined; do not multiply it by two again. Missing categories, prices, or reports are marked as partial or unpriced, not free. Built-in prices are historical references and do not update automatically. The provider's bill is authoritative.
 
-| 窗口 | 用途 | 置顶 / 透明 | 移动和缩放 |
+## Three caption windows
+
+| Window | Purpose | Always on top / transparency | Move and resize |
 | --- | --- | --- | --- |
-| 观众屏幕 / 打开投屏窗口 | 同一电脑连接投影仪或扩展屏 | 普通独立窗口；可全屏 | 拖到扩展屏，点击全屏或按 F |
-| 打开悬浮字幕 | 支持画中画的浏览器 | 浏览器置顶；背景不能透出其他应用 | 浏览器标题栏和窗口边缘 |
-| 桌面字幕 | 覆盖在演示文稿等应用上方 | 置顶；支持真正透明背景 | 拖动顶部，拖动右下角缩放 |
+| Audience / projector window (打开投屏窗口) | A projector or extended display connected to the same computer | Regular independent window; supports fullscreen | Drag to the extended display; use the fullscreen button or press F |
+| Browser floating captions (打开悬浮字幕) | Browsers supporting picture-in-picture | Browser-managed always-on-top window; cannot reveal other applications through its background | Drag the browser title bar and window edges |
+| Desktop captions (桌面字幕) | Captions over slides or other applications | Always on top; supports a truly transparent background | Drag the top area to move; drag the bottom-right corner to resize |
 
-需要透明背景时请选择“桌面字幕”。“悬浮窗配色与透明度”可分别调整中英文字色及背景色；**背景透明度 100% 为全透明，0% 为实色**。这组配色仅影响悬浮 / 桌面字幕，普通观众屏幕不使用这组颜色。视觉透明不代表鼠标穿透，文字和操作区域仍可能接收鼠标。
+Choose **Desktop captions (桌面字幕)** for a transparent background. **悬浮窗配色与透明度** lets you set Chinese text, English text, and background colors separately. **Background transparency of 100% is fully transparent; 0% is solid.** These colors affect floating and desktop captions, not the regular audience window. Visual transparency does not mean mouse click-through: text and controls may still receive clicks.
 
-同一服务内窗口同步显示设置。安装版和源码版是不同服务，分别保存配置；不要同时开启两套采集。投屏指同一电脑的扩展显示器，本版未提供跨电脑远程投屏功能。
+Windows connected to the same service share display settings. Installed and source versions run separate services and save settings separately; avoid capturing audio in both at once. Projection uses a display attached to the same computer. Remote projection to another computer is not implemented in this release.
 
-## 配置、记录与备份
+## Settings, records, and backups
 
-| 数据 | 安装版（用户目录） | 源码版（项目目录） |
+| Data | Installed app (user data directory) | Source version (project directory) |
 | --- | --- | --- |
-| 根目录 | `%APPDATA%\KiConLiveTranslate` | 项目根目录 |
-| 模型、地址、密钥、计价配置 | `config.env` | `.env` |
-| 显示设置（含行数、字号、配色、透明度） | `display.json` | `.local/display.json` |
-| 桌面字幕位置与尺寸 | `desktop-window.json` | `.local/desktop-window.json` |
-| 完整字幕修订、用量 | `recordings/*.jsonl` | `recordings/*.jsonl` |
-| 发言方向、术语、字幕响应、浏览器悬浮尺寸 | 当前控制台站点存储 | 当前浏览器站点存储 |
+| Root directory | `%APPDATA%\KiConLiveTranslate` | Project root |
+| Model, endpoints, API key, pricing | `config.env` | `.env` |
+| Display settings, including line limit, font size, colors, transparency | `display.json` | `.local/display.json` |
+| Desktop caption position and size | `desktop-window.json` | `.local/desktop-window.json` |
+| Full caption revisions and usage | `recordings/*.jsonl` | `recordings/*.jsonl` |
+| Speaking direction, terminology, caption response, browser floating-window size | Current console's site storage | Current browser's site storage |
 
-安装版按 Alt → KiCon 同传 → 打开本机数据文件夹。升级和卸载保留用户数据；仅删除安装目录不会清除密钥和记录。备份或迁移前关闭程序，再按 [迁移说明](docs/安装与迁移说明.txt) 复制必要文件。站点存储项迁移后可能需重设，会议术语可先复制到自己的文本文件。
+In the installed app, use **Alt → KiCon 同传 → 打开本机数据文件夹** to open the data directory. Upgrades and uninstallation retain user data. Deleting only the installation directory does not remove keys or transcripts.
 
-本机不保存原始音频，但同传时音频和术语会发送至所配置的云服务。记录含会议内容，配置文件以本机文本形式保存密钥，未使用系统密钥库加密。不要将用户数据目录、`.env` 或整个工作目录发给第三方。云端数据处理和保留由所选提供商决定。
+For migration, install and launch the app once on the new computer, then close both copies. Copy the needed `display.json`, `desktop-window.json`, and `recordings` files into the new data directory. When migrating from source, the display and desktop-window files come from `.local`. Enter your key again on the new computer; transfer `config.env` securely only when intentionally moving your own credentials (`.env` is its source-version equivalent). Site-storage settings may need to be re-entered; copy your terminology into a separate text file beforehand. Do not copy the entire Chromium cache. See the [Chinese migration guide](docs/安装与迁移说明.txt) for details.
 
-“字幕与会话记录 → 查看本地存档”可导出 TXT / 分语言 SRT；导出读取完整记录，不受屏幕最近 2000 条限制。SRT 使用字幕接收时间，剪辑前需校准；记录文件名使用 UTC 时间。
+Raw audio is not saved locally, but audio and terminology are sent to the configured cloud service during interpreting. Transcripts contain meeting content. Keys are stored locally as configuration text, without encryption through the operating system's credential store. Do not share your user data directory, `.env`, or entire working directory with others. Cloud-side data handling and retention are determined by your chosen provider.
 
-## 常见问题与使用边界
+Use **字幕与会话记录 → 查看本地存档** to export TXT or separate SRT files for each language. Exports read complete records, independent of the display's latest-2,000-entry limit. SRT timing is based on when captions were received and should be aligned before video editing. Record filenames use UTC timestamps.
 
-- **未配置 / 鉴权或模型错误**：核对 Key、权限、余额及地址配置，保存后重新开始。反馈截图不要包含密钥。
-- **没有声音**：检查 Windows 麦克风权限、输入设备及电平。电脑声音在安装版需确认采集提示；外部浏览器需勾选共享音频。系统声音可能包含无关应用通知。
-- **字幕不动**：确认未暂停或黑屏，检查电平、连接状态和错误提示。上游断线后不自动恢复采集，也不补传断线音频；网络恢复后重新开始。
-- **背景一直实色**：浏览器悬浮不支持真正透明；改用“桌面字幕”，透明度设为 100%。远程桌面、驱动及录屏软件可能影响呈现。
-- **译文等整句**：模型可能等待上下文；试快速断句。固定语言选择单向可提前显示原文，但不能保证译文达到官网演示的延迟。
-- **中英切换漏句 / 空字幕**：部分连续切换样本中已观察到，尚未解决。正式会议前使用实际演讲人、术语和音频线路彩排；本机测试未覆盖连续数小时及会场噪声。
-- **Windows 提示未知发布者**：本安装器尚未代码签名。先确认来源及 SHA-256；本说明不要求关闭安全防护。企业电脑按单位安装流程处理。
+## Troubleshooting and limitations
 
-反馈时提供：应用和 Windows 版本、音频来源、发言方向、字幕响应选项、错误文字、复现步骤。只提供经同意分享的脱敏字幕，不发送密钥或完整数据目录。
+- **Missing configuration, authentication, or model errors:** check your key, permissions, balance, and endpoints. Save and start a new session. Keep keys out of support screenshots.
+- **No audio:** check Windows microphone permissions, the selected device, and the input level. For computer audio, confirm the capture prompt in the installed app; in an external browser, enable audio sharing. System audio may include unrelated applications and notifications.
+- **Captions stop updating:** check pause/blank-screen controls, input level, connection status, and errors. After an upstream disconnect, capture does not resume automatically and missed audio is not retransmitted. Restart interpreting once the connection recovers.
+- **The background remains solid:** use desktop captions, not browser picture-in-picture, and set transparency to 100%. Remote desktop sessions, drivers, and screen-recording tools may affect rendering.
+- **Translation waits for a complete sentence:** the model may need more context. Try fast segmentation. For a fixed language, single-direction mode can show source text earlier, but translation latency is not guaranteed to match the provider's demo.
+- **Missing or empty captions when switching languages:** this has been observed in some continuous Chinese–English switching samples and is unresolved. Rehearse with the actual speakers, terminology, and audio equipment before a conference. Testing has not covered hours of continuous use or venue noise.
+- **Windows reports an unknown publisher:** the installer is not code-signed. Verify the source and SHA-256 checksum; do not disable security protection. Follow your organization's installation process on managed computers.
 
-## 给维护者：源码运行
+When reporting an issue, include the app and Windows versions, audio source, speaking direction, caption-response option, error text, and reproduction steps. Share only redacted captions you have permission to disclose; never send keys or the full user data directory.
 
-需要 Node.js 22 或更新版本（须支持 `--env-file-if-exists`）和 npm。首次安装依赖需要联网。
+## Run from source
+
+Maintainers need Node.js 22 or later with support for `--env-file-if-exists`, plus npm. Installing dependencies for the first time requires internet access.
 
 ```powershell
 npm ci
@@ -88,11 +102,11 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 npm start
 ```
 
-在配置页填写 Key，也可自行编辑 `.env`。默认控制台 `http://localhost:3210`，观众屏幕 `http://localhost:3210/screen`。源码版可运行 `start.cmd`，透明字幕入口为 `start-overlay.cmd`。保持服务和采集控制台开启。默认仅监听 `127.0.0.1`，不要为第三方使用开放公网监听。
+Enter your key through Settings, or edit `.env` yourself. The default console is at `http://localhost:3210`; the audience screen is at `http://localhost:3210/screen`. The source version also provides `start.cmd` and `start-overlay.cmd` for the transparent desktop overlay. Keep both the service and capture console open. The service listens on `127.0.0.1` by default; do not expose it to the public internet for distribution to other users.
 
-详见 [开发与接口说明](docs/开发与接口说明.md)：协议、计价覆盖、延迟实验、真实音频验证及代码结构。
+See [development and API notes](docs/开发与接口说明.md) (Chinese) for the protocol, pricing coverage, latency experiments, live-audio checks, and code structure.
 
-## 给维护者：生成可交付包
+## Build a distribution
 
 ```powershell
 npm ci
@@ -104,12 +118,14 @@ npm run test:installer
 npm run release:bundle
 ```
 
-安装器测试会在临时目标目录执行真实安装、首次启动、重启和卸载；发现同名安装或快捷方式时停止，避免覆盖正式环境。应在没有正式安装的测试账号运行。自测移除外部 Node/npm 路径，使用独立临时配置；演示不调用付费模型。这不等同于在所有全新 Windows 电脑上验证过。
+The installer test performs a real installation, first launch, restart, and uninstallation in a temporary destination. It stops if an existing installation or matching shortcuts are found, to avoid overwriting an in-use installation. Run it from a test account without an existing installed copy. Self-tests remove external Node/npm paths and use isolated temporary settings. Demo tests make no paid model requests. This is not equivalent to validation on every clean Windows computer.
 
-`release:bundle` 只收集指定安装器、使用说明、更新说明、组件许可、清单及校验值，要求当前安装器通过匹配 SHA-256 的安装测试。生成后重新读取每个 ZIP 条目并校验哈希，不会把整个 `release`、源码、密钥或会议记录打包。
+`release:bundle` collects only the specified installer, user guide, release notes, component licenses, manifest, and checksums. It requires a passing installer-test receipt matching the installer's SHA-256. Every ZIP entry is read back and checked after packaging. It does not bundle the whole `release` directory, source tree, keys, or meeting records.
 
-`release/win-unpacked`、交付 ZIP 同名解压目录、旧安装器及下载缓存都是可再生成的产物，交付完成后可清理；重新测试打包程序前先运行 `npm run pack:win` 或 `npm run dist:win`。保留最新 ZIP、校验文件和对应安装器。`artifacts` 中最新安装验收记录用于绑定安装器哈希，不应当作普通临时文件清除。
+`release/win-unpacked`, the extracted distribution directory, old installers, and download caches can be regenerated and cleaned up after delivery. Run `npm run pack:win` or `npm run dist:win` before testing the packaged app again. Keep the latest ZIP, its checksum, and the corresponding installer. Keep the latest installer-test receipt in `artifacts`: it binds validation to the installer's hash and is not disposable scratch data.
 
-可交付物为 `release/KiCon-Live-Translate-1.0.1-Windows-x64.zip` 和同名 `.sha256.txt`。向接收者发送这两个文件即可，哈希最好经独立可信渠道核对。`release/win-unpacked` 是维护者测试目录，不必交付。
+For direct distribution, send `release/KiCon-Live-Translate-1.0.1-Windows-x64.zip` and its `.sha256.txt` file. Ideally, verify the hash through an independent trusted channel. `release/win-unpacked` is for maintainer testing and is not required for delivery. GitHub Releases also provides the standalone installer and `SHA256SUMS.txt` for the release assets.
 
-依赖许可随包保留，见 [第三方组件说明](docs/第三方组件说明.txt)。项目尚未声明面向公众的开源授权；本次交付不替项目所有者选择开源许可证，不包含云服务账号、额度或会议内容的转授权。
+## Licensing
+
+Dependency licenses are included in the distribution; see the [third-party component notice](docs/第三方组件说明.txt) (Chinese). The project has not declared a public open-source license. Distribution does not grant rights to cloud-service accounts, credits, or meeting content.
