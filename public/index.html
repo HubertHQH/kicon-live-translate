@@ -77,7 +77,7 @@
             <label for="responsiveness">字幕响应</label>
             <select id="responsiveness" aria-describedby="responsiveness-hint">
               <option value="fast">快速断句 · 0.3 秒停顿</option>
-              <option value="balanced">稳健断句 · 0.6 秒停顿</option>
+              <option value="balanced" selected>稳健断句 · 0.6 秒停顿</option>
             </select>
             <p id="responsiveness-hint" class="hint"></p>
             <details class="terms">
@@ -279,10 +279,10 @@ KiCon Asia = KiCon Asia
               <option value="5">5 行</option>
               <option value="0">随窗口高度</option>
             </select>
-            <p id="caption-max-lines-hint" class="hint">长句超出行数时，用最新内容替换旧行。双语分别计数；完整字幕仍保留在记录中。</p>
+            <p id="caption-max-lines-hint" class="hint">实时优先：相邻短句尽量合并显示，长句分页；根据积压量以约 0.6–1.8 秒翻页，流式追加不反复延长停留。</p>
             </div>
-            <label for="line-count">保留的字幕段落</label
-            ><select id="line-count">
+            <p class="hint">本地队列落后超过 6 秒时跳到较新内容，完整原文与译文保留在记录中。恢复暂停或黑屏时也会追赶；API 自身延时不受此阈值限制。短句过多时可选择“稳健断句”。</p>
+            <select id="line-count" hidden aria-label="旧版段落设置（实时优先模式不使用）">
               <option value="1">最近 1 段</option>
               <option value="2">最近 2 段</option>
               <option value="3" selected>最近 3 段</option>

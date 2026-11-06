@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { runInContext } from "node:vm";
 import { JSDOM } from "jsdom";
 import { languageRows, sessionTiming } from "../public/display.js";
+import { ReadingQueue } from "../public/reading.js";
 
 const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
 const app = (await readFile(new URL("../public/app.js", import.meta.url), "utf8"))
@@ -12,10 +13,12 @@ const app = (await readFile(new URL("../public/app.js", import.meta.url), "utf8"
 async function setup(t, { supported = true, reject = false, native = false, stored } = {}) {
   const dom = new JSDOM(html, { url: `http://localhost:3210/${native ? "screen" : ""}`, runScripts: "outside-only" });
   const w = dom.window, frames = [], sent = [], windows = [], requestedSizes = [];
+  Object.defineProperty(w.document, "hidden", { value: false });
+  w.HTMLElement.prototype.getClientRects = () => [({})];
   if (stored) w.localStorage.setItem("kicon-settings", JSON.stringify(stored));
   let socket, requests = 0;
   Object.assign(w, {
-    languageRows, sessionTiming, structuredClone,
+    languageRows, sessionTiming, structuredClone, ReadingQueue, fitCaptionPage: (_box, text) => text,
     requestAnimationFrame: (cb) => frames.push(cb),
     fetch: async () => ({ ok: true, json: async () => ({ model: "test", token: "test", baseURL: "https://example.com/v1", realtimeURL: "wss://example.com/api-ws/v1/realtime", configured: true }) }),
     WebSocket: class extends w.EventTarget {
@@ -36,6 +39,8 @@ async function setup(t, { supported = true, reject = false, native = false, stor
         url: "http://localhost:3210/",
       });
       const nativeClose = pip.window.close.bind(pip.window);
+      Object.defineProperty(pip.window.document, "hidden", { value: false });
+      pip.window.HTMLElement.prototype.getClientRects = () => [({})];
       pip.window.innerWidth = options.width;
       pip.window.innerHeight = options.height;
       pip.window.closed = false;
@@ -66,22 +71,22 @@ async function setup(t, { supported = true, reject = false, native = false, stor
 
 test("response preference survives reload and is sent only when starting a session", async (t) => {
   const f = await setup(t), select = f.w.document.getElementById("responsiveness");
-  assert.equal(select.value, "fast");
+  assert.equal(select.value, "balanced");
   assert.equal(select.disabled, true, "cannot change an active session's detection settings");
   f.state.status = "stopped";
   f.receive({ type: "state", state: f.state });
   while (f.frames.length) f.frames.shift()();
   assert.equal(select.disabled, false);
-  select.value = "balanced";
+  select.value = "fast";
   select.dispatchEvent(new f.w.Event("change"));
   const stored = JSON.parse(f.w.localStorage.getItem("kicon-settings"));
-  assert.equal(stored.responsiveness, "balanced");
+  assert.equal(stored.responsiveness, "fast");
   assert.equal(f.sent.length, 0);
   const reloaded = await setup(t, { stored });
-  assert.equal(reloaded.w.document.getElementById("responsiveness").value, "balanced");
+  assert.equal(reloaded.w.document.getElementById("responsiveness").value, "fast");
   f.w.document.getElementById("demo").click();
   assert.equal(f.sent.at(-1).type, "demo");
-  assert.equal(f.sent.at(-1).responsiveness, "balanced");
+  assert.equal(f.sent.at(-1).responsiveness, "fast");
 });
 
 test("floating captions update while controller animation frames are suspended; controls, freeze and blank stay in sync", async (t) => {
@@ -149,6 +154,41 @@ test("physical line limit syncs across preview, PiP and desktop without dropping
     for (const stage of stages) assert.equal(stage.classList.contains("line-limited"), false);
     assert.equal(f.w.document.querySelector("button[data-theme]"), null);
   }
+});
+
+test("preview and floating queues drain after stop, keep languages independent, and reset for a new session", async (t) => {
+  const f = await setup(t);
+  let now = 0;
+  f.w.performance.now = () => now;
+  await f.open();
+  const rows = [
+    { id: "s1", kind: "source", text: "第一段", final: true },
+    { id: "s2", kind: "source", text: "第二段", final: true },
+    { id: "s3", kind: "source", text: "第三段", final: true },
+    { id: "t1", kind: "translation", language: "en", text: "Translation", final: true },
+  ];
+  for (const row of rows) f.receive({ type: "row", row });
+  const stages = [f.w.document.getElementById("preview"), f.windows[0].document.getElementById("floating-stage")];
+  const texts = () => stages.map((stage) => stage.querySelector('[data-lane="zh"] .caption-text').textContent);
+  assert.deepEqual(texts(), ["第一段 第二段 第三段", "第一段 第二段 第三段"]);
+  for (const stage of stages) {
+    assert.match(stage.querySelector(".stage-state").textContent, /实时优先/);
+    assert.match(stage.querySelector('[data-lane="en"]').textContent, /Translation/);
+  }
+  f.state.status = "stopped";
+  f.state.rows = rows;
+  f.receive({ type: "state", state: f.state });
+  for (now = 100; now <= 1900; now += 100) f.w.eval("for (const stage of captionStages()) renderStage(stage)");
+  assert.deepEqual(texts(), ["第一段 第二段 第三段", "第一段 第二段 第三段"]);
+  f.w.eval("for (const stage of captionStages()) renderStage(stage)");
+  assert.deepEqual(texts(), ["第一段 第二段 第三段", "第一段 第二段 第三段"]);
+  for (now = 2100; now <= 4000; now += 100) f.w.eval("for (const stage of captionStages()) renderStage(stage)");
+  assert.deepEqual(texts(), ["第一段 第二段 第三段", "第一段 第二段 第三段"]);
+  f.state.sessionId = "new-session";
+  f.state.status = "live";
+  f.state.rows = [{ ...rows[0], id: "new", text: "新会话" }];
+  f.receive({ type: "state", state: f.state });
+  assert.deepEqual(texts(), ["新会话", "新会话"]);
 });
 
 test("unsupported or rejected PiP shows a useful message and leaves the controller usable", async (t) => {

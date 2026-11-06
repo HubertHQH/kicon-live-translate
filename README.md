@@ -4,7 +4,7 @@
 
 Real-time Chinese–English speech translation and live captions for KiCon Asia 2026. Capture a microphone, mixing console, or computer audio, translate with Qwen, and display captions in the workspace, on a projector, or in an always-on-top desktop overlay.
 
-Current release: **1.0.1 · Windows x64 · October 25, 2026**. The installer bundles Electron, Chromium, Node.js, and the local service. Users do not need a development environment or to build the app. Installation works offline; live recognition and translation require internet access and your own API key.
+Current build: **1.0.2 · Windows x64 · November 6, 2026**. Download links below still point to the published 1.0.1 release. The installer bundles Electron, Chromium, Node.js, and the local service. Users do not need a development environment or to build the app. Installation works offline; live recognition and translation require internet access and your own API key.
 
 The application interface and bundled offline guides are currently primarily in Chinese. This README includes the Chinese labels needed to follow the instructions.
 
@@ -43,9 +43,9 @@ Saving settings validates their format, not remote permissions or your balance. 
 
 - **Chinese talk → English / English talk → Chinese:** uses one session in a fixed direction. Source captions use recognition updates directly; translations appear as they are generated. Prefer this mode when the speaking language is fixed.
 - **Automatic bidirectional mode (中英交替 · 自动双向):** sends the same audio to two sessions, producing Chinese and English separately. Both caption streams wait for their respective target-language output, which may appear later than source captions in fixed-direction mode and increases usage. The console also keeps the recognized source text.
-- **Caption response:** fast segmentation is the default, with 300 ms of silence; the steadier option uses 600 ms. The selection is saved in the current console's site storage and applies to the next session. Smaller 50 ms audio packets and shorter silence thresholds reduce local waiting, but testing has not demonstrated a consistent large latency improvement.
+- **Caption response:** steady segmentation is the default, with 600 ms of silence; fast segmentation remains available at 300 ms. Existing saved preferences are preserved. The selection is saved in the current console's site storage and applies to the next session. Smaller 50 ms audio packets and shorter silence thresholds reduce local waiting, but testing has not demonstrated a consistent large latency improvement.
 - **Conference terminology:** enter one `中文 = English` pair per line. Changes apply to new sessions. These are model hints, not a guarantee that every technical term will be translated correctly.
-- **Visible line limit:** show 1–5 lines per language, or adapt to the window height; the default is 2 lines. Overflow keeps the latest lines visible while retaining the full transcript. The retained-paragraph setting controls caption history separately.
+- **Visible line limit:** show 1–5 lines per language, or adapt to the window height; the default is 2 lines. Long captions are paginated using actual window dimensions. Adjacent short segments share a page. Realtime playback advances in about 0.6–1.8 seconds depending on backlog; after 6 seconds of local queue lag it skips to recent content and reports catch-up events. Complete transcripts remain in recordings. This limit excludes API latency. Resuming a paused or hidden window also catches up.
 - **Pause, blank screen, or close a caption window:** these affect the display only; audio capture and billing continue. Click **停止同传** to stop capture. Refreshing or closing the capture console also ends capture. Stop and wait for the final sentence before exiting to reduce the risk of losing it.
 - **Tokens, duration, and cost:** usage accumulates from server reports, with session duration and estimated average cost per minute. Reports may arrive after streamed text. Bidirectional usage is already combined; do not multiply it by two again. Missing categories, prices, or reports are marked as partial or unpriced, not free. Built-in prices are historical references and do not update automatically. The provider's bill is authoritative.
 
@@ -124,7 +124,7 @@ The installer test performs a real installation, first launch, restart, and unin
 
 `release/win-unpacked`, the extracted distribution directory, old installers, and download caches can be regenerated and cleaned up after delivery. Run `npm run pack:win` or `npm run dist:win` before testing the packaged app again. Keep the latest ZIP, its checksum, and the corresponding installer. Keep the latest installer-test receipt in `artifacts`: it binds validation to the installer's hash and is not disposable scratch data.
 
-For direct distribution, send `release/KiCon-Live-Translate-1.0.1-Windows-x64.zip` and its `.sha256.txt` file. Ideally, verify the hash through an independent trusted channel. `release/win-unpacked` is for maintainer testing and is not required for delivery. GitHub Releases also provides the standalone installer and `SHA256SUMS.txt` for the release assets.
+For direct distribution, send `release/KiCon-Live-Translate-1.0.2-Windows-x64.zip` and its `.sha256.txt` file. Ideally, verify the hash through an independent trusted channel. `release/win-unpacked` is for maintainer testing and is not required for delivery. GitHub Releases also provides the standalone installer and `SHA256SUMS.txt` for the release assets.
 
 ## Licensing
 

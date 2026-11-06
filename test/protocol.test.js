@@ -95,7 +95,8 @@ test("term direction reverses and 3.8 configuration uses output_modalities", () 
 });
 
 test("response profiles shorten silence without disabling continuous text output", () => {
-  assert.equal(validateStart({ mode: "auto" }).responsiveness, "fast");
+  assert.equal(validateStart({ mode: "auto" }).responsiveness, "balanced");
+  assert.equal(sessionConfig("en").session.audio.input.turn_detection.silence_duration_ms, 600);
   for (const [profile, silence] of [["fast", 300], ["balanced", 600]]) {
     assert.equal(validateStart({ mode: "zh-en", responsiveness: profile }).responsiveness, profile);
     const config = sessionConfig("en", [], profile).session;

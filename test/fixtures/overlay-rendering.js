@@ -1,4 +1,5 @@
 // Real Chromium computed-style regression; no live service or user session.
+import { fitCaptionPage } from "../../public/reading.js";
 window.addEventListener("load", () => {
   try {
     const style = (element) => getComputedStyle(element);
@@ -76,6 +77,29 @@ window.addEventListener("load", () => {
               box.lastChild.classList.remove("partial");
             }
           }
+        }
+      }
+    }
+    for (const kind of ["floating-stage", "fullscreen-stage", "preview-stage"]) {
+      stage.className = `stage ${kind} line-limited`;
+      for (const width of [320, 720]) {
+        stage.style.width = `${width}px`;
+        stage.style.setProperty("--caption-size", "44px");
+        for (const lines of [1, 2]) {
+          stage.style.setProperty("--caption-max-lines", String(lines));
+          const original = "中文长句必须完整阅读。English words and 👨‍👩‍👧‍👦 emoji é. SuperLongUnbrokenWord".repeat(3);
+          let rest = original, played = "", pages = 0;
+          while (rest) {
+            const page = fitCaptionPage(box, rest);
+            assert(page.length > 0, `page cannot fit in ${kind}/${width}/${lines}`);
+            const p = document.createElement("p"); p.textContent = page;
+            box.replaceChildren(p);
+            const bounds = box.getBoundingClientRect(), rect = p.getBoundingClientRect();
+            assert(rect.top >= bounds.top - 1 && rect.bottom <= bounds.bottom + 1, "reading page is clipped");
+            played += page; rest = rest.slice(page.length);
+            assert(++pages < 200, "pagination did not progress");
+          }
+          assert(played === original, "pagination lost or duplicated text");
         }
       }
     }

@@ -73,7 +73,7 @@ export class Transcript {
   }
 }
 
-export function sessionConfig(target, terms = [], responsiveness = "fast") {
+export function sessionConfig(target, terms = [], responsiveness = "balanced") {
   const phrases = Object.fromEntries(
     terms.map(([zh, en]) => (target === "en" ? [zh, en] : [en, zh])),
   );
@@ -102,7 +102,7 @@ export function validateStart(value) {
   if (!["auto", "zh-en", "en-zh"].includes(value.mode))
     throw new Error("请选择有效的翻译方向。");
   const terms = value.terms ?? [];
-  const responsiveness = value.responsiveness ?? "fast";
+  const responsiveness = value.responsiveness ?? "balanced";
   if (!["fast", "balanced"].includes(responsiveness))
     throw new Error("请选择有效的字幕响应方式。");
   if (

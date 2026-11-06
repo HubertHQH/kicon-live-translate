@@ -174,7 +174,7 @@ test("full relay handles source text, viewer permissions, owner lock, freeze rec
     await live;
     assert.equal((await postConfig({})).status, 409, "running sessions cannot change configuration");
     assert.equal(sessions, 2);
-    assert.deepEqual(detections.map(d => d.silence_duration_ms), [300, 300]);
+    assert.deepEqual(detections.map(d => d.silence_duration_ms), [600, 600]);
     const rejection = wait(rival, (m) => m.type === "error");
     rival.send(JSON.stringify({ type: "start", mode: "auto" }));
     assert.match((await rejection).message, /已有/);

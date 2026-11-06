@@ -1,5 +1,6 @@
 import { AudioCapture } from "./audio.js";
 import { languageRows, sessionTiming } from "./display.js";
+import { ReadingQueue, fitCaptionPage } from "./reading.js";
 const $ = (id) => document.getElementById(id);
 const screen = location.pathname === "/screen";
 const nativeOverlay = screen && window.kiconDesktop?.isOverlay === true;
@@ -18,13 +19,31 @@ let socket,
   connected = false,
   config;
 let renderQueued = false,
-  frozenRows = null,
-  wasFrozen = false,
   retry = 0;
 let floatingWindow = null,
   floatingStage = null,
   openingFloating = false;
 let settingsDirty = false, savingSettings = false;
+const playback = new WeakMap();
+let playbackRevision = 0;
+function captionStages() {
+  return [screen ? $("projection-stage") : $("preview"),
+    ...(floatingStage && floatingWindow && !floatingWindow.closed ? [floatingStage] : [])];
+}
+function readingFor(stage) {
+  const session = state.sessionId || state.startedAt;
+  let reading = playback.get(stage);
+  if (!reading || reading.session !== session) {
+    reading = { session, zh: new ReadingQueue({ realtime: true }), en: new ReadingQueue({ realtime: true }) };
+    playback.set(stage, reading);
+  }
+  if (reading.revision !== playbackRevision) {
+    for (const lang of ["zh", "en"])
+      reading[lang].ingest(languageRows(state, lang), !active(), performance.now());
+    reading.revision = playbackRevision;
+  }
+  return reading;
+}
 function fillSettings() {
   if (!config) return;
   $("settings-base-url").value = config.baseURL || "";
@@ -143,6 +162,9 @@ async function connect() {
           capture = null;
         }
       }
+      // Ingest every message, even when several arrive before a paint.
+      playbackRevision++;
+      for (const stage of captionStages()) readingFor(stage);
       scheduleRender();
     });
     socket.addEventListener("close", async () => {
@@ -181,8 +203,9 @@ function scheduleRender() {
     render();
   });
 }
-function renderStage(stage, rows) {
+function renderStage(stage) {
   const d = state.display;
+  const reading = readingFor(stage);
   stage.dataset.theme = d.theme;
   stage.dataset.mode = d.mode;
   stage.classList.toggle("blank", !!d.blank);
@@ -204,25 +227,32 @@ function renderStage(stage, rows) {
     const lane = stage.querySelector(`[data-lane="${lang}"]`);
     lane.hidden = d.mode !== "bilingual" && d.mode !== lang;
     const box = lane.querySelector(".caption-text");
-    const selected = languageRows({ ...state, rows }, lang).slice(-d.lines);
-    box.replaceChildren();
-    if (!selected.length) {
+    const visible = !d.frozen && !d.blank && !lane.hidden &&
+      !stage.ownerDocument.hidden && stage.getClientRects().length > 0;
+    const text = reading[lang].tick(performance.now(), (value) => fitCaptionPage(box, value), visible);
+    if (!text) {
+      box.replaceChildren();
       const p = document.createElement("p");
       p.className = "waiting";
       p.textContent =
         lang === "zh" ? "等待发言，让交流开始。" : "Ready when you are.";
       box.append(p);
     } else {
-      // Bottom-aligned, clipped flow keeps the newest speech visible using
-      // actual browser text layout, without guessing English/CJK word widths.
-      for (const row of selected) {
+      if (box.textContent !== text || box.querySelector(".waiting")) {
+        box.replaceChildren();
         const p = document.createElement("p");
-        p.textContent = row.text;
-        p.classList.toggle("partial", !row.final && active());
+        p.textContent = text;
         box.append(p);
       }
+      box.firstChild.classList.toggle("partial", !reading[lang].queue[0]?.final && active());
     }
   }
+  const pending = ["zh", "en"].filter((lang) => d.mode === "bilingual" || d.mode === lang)
+    .map((lang) => `${lang === "zh" ? "中" : "英"} ${reading[lang].pending}`).join(" / ");
+  const hasPending = ["zh", "en"].some((lang) => (d.mode === "bilingual" || d.mode === lang) && reading[lang].pending > 0);
+  const catchups = reading.zh.catchups + reading.en.catchups;
+  stage.querySelector(".stage-state").textContent += ` · 实时优先${hasPending ? ` · 待播 ${pending} 段` : ""}${catchups ? ` · 已追赶 ${catchups} 次，全文见记录` : ""}`;
+  if (hasPending || catchups) stage.dataset.alert = "true";
 }
 function renderTiming() {
   const timing = sessionTiming(state);
@@ -288,16 +318,9 @@ function renderUsage() {
 
 function render() {
   const d = state.display;
-  if (d.frozen && (!wasFrozen || state.frozenRows))
-    frozenRows = state.frozenRows || structuredClone(state.rows);
-  if (!d.frozen) frozenRows = null;
-  wasFrozen = !!d.frozen;
-  renderStage(
-    screen ? $("projection-stage") : $("preview"),
-    frozenRows || state.rows,
-  );
+  renderStage(screen ? $("projection-stage") : $("preview"));
   if (floatingStage && floatingWindow && !floatingWindow.closed) {
-    renderStage(floatingStage, frozenRows || state.rows);
+    renderStage(floatingStage);
     const toolbar = floatingWindow.document.querySelector(".floating-toolbar");
     toolbar.querySelector("select").value = d.mode;
     toolbar.querySelector("select").disabled = !connected;
@@ -549,7 +572,7 @@ $("direction").onchange();
 $("responsiveness").onchange = () => {
   persist();
   $("responsiveness-hint").textContent = $("responsiveness").value === "fast"
-    ? "缩短静音断句等待；模型仍可能等待上下文，实际提速因语音而异。若断句过碎可切回稳健。下次开始生效。"
+    ? "停顿约 0.3 秒即断句，可能产生很短的句子。若短句较多，选择稳健断句；画面会自动合并能放在同页的相邻短句。下次开始生效。"
     : "停顿约 0.6 秒再断句，适合语速较慢、停顿较多的演讲。下次开始生效。";
 };
 $("responsiveness").onchange();
@@ -795,5 +818,9 @@ window.addEventListener("beforeunload", () => {
 setInterval(() => {
   if (!screen) renderTiming();
 }, 1000);
+// Playback must continue after the last API event and after capture stops.
+setInterval(() => {
+  for (const stage of captionStages()) renderStage(stage);
+}, 100);
 if (!screen) void devices();
 void connect();

@@ -10,7 +10,7 @@ for (const file of files) {
   assert(!/(^|\/)(\.env[^/]*|\.local|recordings|artifacts|test|\.git)(\/|$)/.test(file), `Private/development file in package: ${file}`);
   if (file.startsWith("node_modules/")) assert(file === "node_modules/ws" || file.startsWith("node_modules/ws/"), `Unexpected dependency: ${file}`);
 }
-for (const file of ["desktop/application.cjs", "desktop/service.cjs", "desktop/preload.cjs", "server/index.js", "public/index.html", "public/pcm-worklet.js", "node_modules/ws/index.js"])
+for (const file of ["desktop/application.cjs", "desktop/service.cjs", "desktop/preload.cjs", "server/index.js", "public/index.html", "public/reading.js", "public/pcm-worklet.js", "node_modules/ws/index.js"])
   assert(files.includes(file), `Missing runtime component: ${file}`);
 const appPackage = JSON.parse(asar.extractFile(archive, "package.json"));
 assert.equal(appPackage.version, JSON.parse(fs.readFileSync(path.join(root, "package.json"))).version, "Stale package version");

@@ -41,6 +41,7 @@ const files = new Map(
     "/pcm-worklet.js",
     "/resampler.js",
     "/display.js",
+    "/reading.js",
   ].map((p) => [p, join(root, "public", p)]),
 );
 const mime = {
