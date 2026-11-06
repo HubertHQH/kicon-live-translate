@@ -6,6 +6,30 @@ const row = (id, text, final = true) => ({ id, text, final });
 const fit = (text) => text.slice(0, 6);
 const live = () => new ReadingQueue({ realtime: true });
 
+test("a long streaming segment cannot catch up again on every token", () => {
+  const q = live();
+  q.ingest([row("a", "abcdefghijkl", false)], false, 0);
+  assert.equal(q.tick(7000, fit), "ghijkl");
+  for (let time = 7100; time <= 7900; time += 100) {
+    q.ingest([row("a", "abcdefghijkl" + "x".repeat((time - 7000) / 100), false)], false, time);
+    q.tick(time, fit);
+  }
+  assert.equal(q.catchups, 1);
+  q.tick(8200, fit);
+  assert.equal(q.catchups, 2);
+});
+
+test("growing words do not retract already-visible text at a page boundary", () => {
+  const q = live();
+  const measure = (text) => text.length <= 11 ? text : "hello ";
+  q.ingest([row("a", "hello world", false)]);
+  assert.equal(q.tick(0, measure), "hello world");
+  q.ingest([row("a", "hello worlds", false)], false, 100);
+  assert.equal(q.tick(100, measure), "hello world");
+  q.ingest([row("a", "corrected", true)], false, 200);
+  assert.equal(q.tick(200, measure), "corrected", "actual corrections must still display");
+});
+
 test("realtime combines short final segments without waiting for another API call", () => {
   const q = live();
   q.ingest([row("a", "你好"), row("b", "世界"), row("c", "欢迎")]);

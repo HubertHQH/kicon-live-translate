@@ -217,12 +217,11 @@ function renderStage(stage) {
   stage.querySelector(".stage-indicator").textContent = state.demo
     ? "DEMO · 演示字幕"
     : "LIVE TRANSLATION";
-  stage.querySelector(".stage-state").textContent = !connected
+  const statusText = !connected
     ? "连接中断 / OFFLINE"
     : d.frozen
       ? "画面暂停 / HOLD"
       : `${labels[state.status]} / ${state.status.toUpperCase()}`;
-  stage.dataset.alert = !connected || state.demo || d.frozen || state.status === "error" ? "true" : "false";
   for (const lang of ["zh", "en"]) {
     const lane = stage.querySelector(`[data-lane="${lang}"]`);
     lane.hidden = d.mode !== "bilingual" && d.mode !== lang;
@@ -230,29 +229,27 @@ function renderStage(stage) {
     const visible = !d.frozen && !d.blank && !lane.hidden &&
       !stage.ownerDocument.hidden && stage.getClientRects().length > 0;
     const text = reading[lang].tick(performance.now(), (value) => fitCaptionPage(box, value), visible);
-    if (!text) {
-      box.replaceChildren();
-      const p = document.createElement("p");
-      p.className = "waiting";
-      p.textContent =
-        lang === "zh" ? "等待发言，让交流开始。" : "Ready when you are.";
-      box.append(p);
-    } else {
-      if (box.textContent !== text || box.querySelector(".waiting")) {
-        box.replaceChildren();
-        const p = document.createElement("p");
-        p.textContent = text;
-        box.append(p);
-      }
-      box.firstChild.classList.toggle("partial", !reading[lang].queue[0]?.final && active());
+    let paragraph = box.firstElementChild;
+    if (!paragraph) {
+      paragraph = box.ownerDocument.createElement("p");
+      paragraph.append(box.ownerDocument.createTextNode(""));
+      box.append(paragraph);
     }
+    const value = text || (lang === "zh" ? "等待发言，让交流开始。" : "Ready when you are.");
+    // Preserve the paragraph and text node across tokens and page changes.
+    if (!paragraph.firstChild) paragraph.append(box.ownerDocument.createTextNode(""));
+    if (paragraph.firstChild.data !== value) paragraph.firstChild.data = value;
+    paragraph.classList.toggle("waiting", !text);
+    paragraph.classList.toggle("partial", !!text && !reading[lang].queue[0]?.final && active());
   }
   const pending = ["zh", "en"].filter((lang) => d.mode === "bilingual" || d.mode === lang)
     .map((lang) => `${lang === "zh" ? "中" : "英"} ${reading[lang].pending}`).join(" / ");
   const hasPending = ["zh", "en"].some((lang) => (d.mode === "bilingual" || d.mode === lang) && reading[lang].pending > 0);
   const catchups = reading.zh.catchups + reading.en.catchups;
-  stage.querySelector(".stage-state").textContent += ` · 实时优先${hasPending ? ` · 待播 ${pending} 段` : ""}${catchups ? ` · 已追赶 ${catchups} 次，全文见记录` : ""}`;
-  if (hasPending || catchups) stage.dataset.alert = "true";
+  const status = `${statusText} · 实时优先${hasPending ? ` · 待播 ${pending} 段` : ""}${catchups ? ` · 已追赶 ${catchups} 次，全文见记录` : ""}`;
+  const statusNode = stage.querySelector(".stage-state");
+  if (statusNode.textContent !== status) statusNode.textContent = status;
+  stage.dataset.alert = !connected || state.demo || d.frozen || state.status === "error" || hasPending || catchups ? "true" : "false";
 }
 function renderTiming() {
   const timing = sessionTiming(state);

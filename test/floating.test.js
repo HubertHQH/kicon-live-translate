@@ -130,6 +130,23 @@ test("floating captions update while controller animation frames are suspended; 
   assert.match(f.windows[1].document.body.textContent, /恢复更新/);
 });
 
+test("streaming updates retain caption paragraph and text nodes", async (t) => {
+  const f = await setup(t);
+  await f.open();
+  const box = f.windows[0].document.querySelector('[data-lane="zh"] .caption-text');
+  const paragraph = box.firstElementChild, textNode = paragraph.firstChild;
+  const changes = new f.windows[0].MutationObserver(() => {});
+  changes.observe(box, { childList: true, subtree: true });
+  for (const text of ["你", "你好", "你好世界", "你好，世界！"]) {
+    f.receive({ type: "row", row: { id: "stable", kind: "source", language: "zh", text, final: false } });
+    assert.equal(box.firstElementChild, paragraph);
+    assert.equal(paragraph.firstChild, textNode);
+    assert.equal(textNode.data, text);
+  }
+  assert.equal(changes.takeRecords().length, 0, "updates must not remove/reinsert nodes");
+  changes.disconnect();
+});
+
 test("physical line limit syncs across preview, PiP and desktop without dropping transcript text", async (t) => {
   for (const native of [false, true]) {
     const f = await setup(t, { native });

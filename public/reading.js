@@ -101,7 +101,8 @@ export class ReadingQueue {
     // Keep the newest segment on a burst, including when resuming a hidden window.
     const unread = !this.plan || this.plan.length < this.queue.length ||
       this.plan.at(-1)?.count < this.plan.at(-1)?.entry.text.length - this.plan.at(-1)?.entry.offset;
-    if (unread && now - this.queue[0].receivedAt > 6000) {
+    if (unread && now - this.queue[0].receivedAt > 6000 &&
+        now - (this.lastCatchupAt ?? -Infinity) >= 1200) {
       let caughtUp = false;
       while (this.queue.length > 1) {
         this.queue.shift().done = true;
@@ -118,7 +119,10 @@ export class ReadingQueue {
         entry.offset += parts.slice(0, lo).join("").length;
         caughtUp = true;
       }
-      if (caughtUp) { this.catchups++; this.elapsed = 0; this.page = ""; this.plan = null; }
+      if (caughtUp) {
+        this.lastCatchupAt = now;
+        this.catchups++; this.elapsed = 0; this.page = ""; this.plan = null;
+      }
     }
     const backlog = this.queue.reduce((n, e) => n + e.text.length - e.offset, 0);
     const dwell = backlog > Math.max(1, this.page.length) * 3 ? 600 :
@@ -147,6 +151,13 @@ export class ReadingQueue {
       plan.push({ entry, count });
       if (count < rest.length || !entry.final) break;
     }
+    // Word-boundary fitting may return a shorter prefix as a new word grows.
+    // Keep already-visible text until the next page, unless it was corrected
+    // or the window really shrank. Never flash a suffix off and back on.
+    if (page && this.page.startsWith(page) && this.plan && fit(this.page) === this.page) {
+      page = this.page;
+      plan = this.plan;
+    }
     if (page !== this.page) {
       // Streaming growth must not restart a multi-second timer on every token.
       if (!page.startsWith(this.page)) this.elapsed = 0;
@@ -166,8 +177,15 @@ export function fitCaptionPage(box, text) {
   const width = box.clientWidth, height = box.clientHeight;
   if (!width || !height || !text) return "";
   const probe = box.ownerDocument.createElement("p");
-  probe.style.cssText = `position:absolute;visibility:hidden;pointer-events:none;width:${width}px;margin:0;max-height:none;`;
-  box.append(probe);
+  const view = box.ownerDocument.defaultView;
+  const style = view.getComputedStyle(box.querySelector("p") || box);
+  probe.style.cssText = `position:fixed;left:-100000px;top:0;visibility:hidden;pointer-events:none;width:${width}px;margin:0;padding:0;border:0;max-height:none;box-sizing:border-box;`;
+  for (const property of ["fontFamily", "fontSize", "fontWeight", "fontStyle", "fontStretch",
+    "lineHeight", "letterSpacing", "wordSpacing", "whiteSpace", "overflowWrap", "wordBreak", "textTransform"])
+    probe.style[property] = style[property];
+  // A probe inside the live box changes :last-child opacity/margins while
+  // forcing layout. Measure outside the caption tree instead.
+  box.ownerDocument.body.append(probe);
   const fits = (value) => {
     probe.textContent = value;
     return probe.getBoundingClientRect().height <= height + 0.5;

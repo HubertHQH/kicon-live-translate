@@ -90,7 +90,11 @@ window.addEventListener("load", () => {
           const original = "中文长句必须完整阅读。English words and 👨‍👩‍👧‍👦 emoji é. SuperLongUnbrokenWord".repeat(3);
           let rest = original, played = "", pages = 0;
           while (rest) {
+            const mutations = new MutationObserver(() => {});
+            mutations.observe(box, { childList: true, subtree: true });
             const page = fitCaptionPage(box, rest);
+            assert(mutations.takeRecords().length === 0, "measurement mutated the live caption tree");
+            mutations.disconnect();
             assert(page.length > 0, `page cannot fit in ${kind}/${width}/${lines}`);
             const p = document.createElement("p"); p.textContent = page;
             box.replaceChildren(p);

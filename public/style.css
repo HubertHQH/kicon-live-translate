@@ -526,9 +526,6 @@ textarea {
 .caption-text p:last-child {
   margin-bottom: 0;
 }
-.caption-text p:not(:last-child) {
-  opacity: 0.52;
-}
 .caption-text .waiting {
   opacity: 0.55;
 }
