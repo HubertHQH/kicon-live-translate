@@ -4,7 +4,7 @@
 
 Real-time Chinese–English speech translation and live captions for KiCon Asia 2026. Capture a microphone, mixing console, or computer audio, translate with Qwen, and display captions in the workspace, on a projector, or in an always-on-top desktop overlay.
 
-Current build: **1.0.2 · Windows x64 · November 6, 2026**. Download links below still point to the published 1.0.1 release. The installer bundles Electron, Chromium, Node.js, and the local service. Users do not need a development environment or to build the app. Installation works offline; live recognition and translation require internet access and your own API key.
+Current build: **1.0.3 · Windows x64 · November 6, 2026**. Download links below still point to the published 1.0.1 release. The installer bundles Electron, Chromium, Node.js, and the local service. Users do not need a development environment or to build the app. Installation works offline; live recognition and translation require internet access and your own API key.
 
 The application interface and bundled offline guides are currently primarily in Chinese. This README includes the Chinese labels needed to follow the instructions.
 
@@ -124,7 +124,7 @@ The installer test performs a real installation, first launch, restart, and unin
 
 `release/win-unpacked`, the extracted distribution directory, old installers, and download caches can be regenerated and cleaned up after delivery. Run `npm run pack:win` or `npm run dist:win` before testing the packaged app again. Keep the latest ZIP, its checksum, and the corresponding installer. Keep the latest installer-test receipt in `artifacts`: it binds validation to the installer's hash and is not disposable scratch data.
 
-For direct distribution, send `release/KiCon-Live-Translate-1.0.2-Windows-x64.zip` and its `.sha256.txt` file. Ideally, verify the hash through an independent trusted channel. `release/win-unpacked` is for maintainer testing and is not required for delivery. GitHub Releases also provides the standalone installer and `SHA256SUMS.txt` for the release assets.
+For direct distribution, send `release/KiCon-Live-Translate-1.0.3-Windows-x64.zip` and its `.sha256.txt` file. Ideally, verify the hash through an independent trusted channel. `release/win-unpacked` is for maintainer testing and is not required for delivery. GitHub Releases also provides the standalone installer and `SHA256SUMS.txt` for the release assets.
 
 ## Licensing
 

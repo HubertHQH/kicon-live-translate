@@ -532,17 +532,6 @@ textarea {
 .caption-text .waiting {
   opacity: 0.55;
 }
-.caption-text .partial:last-child:after {
-  /* An in-flow caret could wrap by itself and hide the latest text in 1-line mode. */
-  position: absolute;
-  content: "";
-  width: 4px;
-  height: 0.78em;
-  background: #cfe699;
-  display: inline-block;
-  margin-left: 5px;
-  animation: blink 1.4s ease-in-out infinite;
-}
 .caption-lane[data-lane="en"] .caption-text {
   color: #d7e8bd;
 }
@@ -841,11 +830,6 @@ output {
 body:not(.native-overlay):has(#projection:not([hidden])) {
   background: #192923;
   overflow: hidden;
-}
-@keyframes blink {
-  50% {
-    opacity: 0.25;
-  }
 }
 @media (min-width: 1550px) {
   .workspace {

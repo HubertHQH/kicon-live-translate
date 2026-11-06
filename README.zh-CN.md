@@ -4,7 +4,7 @@
 
 中英实时字幕工具：麦克风 / 调音台 / 电脑声音 → Qwen 语音识别与翻译 → 工作台、观众屏幕或置顶桌面字幕。
 
-当前构建版本：**1.0.2 · Windows x64 · 2026-11-06**（下方下载链接为已发布的 1.0.1）。内置 Electron、Chromium、Node.js 和本地服务，目标电脑无需开发环境。安装本身可离线完成；实时识别、翻译需要互联网和使用者自己的 API Key。
+当前构建版本：**1.0.3 · Windows x64 · 2026-11-06**（下方下载链接为已发布的 1.0.1）。内置 Electron、Chromium、Node.js 和本地服务，目标电脑无需开发环境。安装本身可离线完成；实时识别、翻译需要互联网和使用者自己的 API Key。
 
 ## 给使用者：安装后如何开始
 
@@ -117,6 +117,6 @@ npm run release:bundle
 
 `release/win-unpacked`、交付 ZIP 同名解压目录、旧安装器及下载缓存都是可再生成的产物，交付完成后可清理；重新测试打包程序前先运行 `npm run pack:win` 或 `npm run dist:win`。保留最新 ZIP、校验文件和对应安装器。`artifacts` 中最新安装验收记录用于绑定安装器哈希，不应当作普通临时文件清除。
 
-可交付物为 `release/KiCon-Live-Translate-1.0.2-Windows-x64.zip` 和同名 `.sha256.txt`。向接收者发送这两个文件即可，哈希最好经独立可信渠道核对。`release/win-unpacked` 是维护者测试目录，不必交付。
+可交付物为 `release/KiCon-Live-Translate-1.0.3-Windows-x64.zip` 和同名 `.sha256.txt`。向接收者发送这两个文件即可，哈希最好经独立可信渠道核对。`release/win-unpacked` 是维护者测试目录，不必交付。
 
 依赖许可随包保留，见 [第三方组件说明](docs/第三方组件说明.txt)。项目尚未声明面向公众的开源授权；本次交付不替项目所有者选择开源许可证，不包含云服务账号、额度或会议内容的转授权。

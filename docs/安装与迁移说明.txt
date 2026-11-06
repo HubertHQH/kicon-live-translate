@@ -1,5 +1,5 @@
 KiCon Asia 2026 · 实时同传
-安装与使用 / 版本 1.0.2 / Windows x64 / 2026-11-06
+安装与使用 / 版本 1.0.3 / Windows x64 / 2026-11-06
 
 一、准备条件
 建议 Windows 11（64 位 Intel / AMD 电脑），预留至少 1 GB 空间。本机 Windows 11 已验证；Windows 10 x64、不同显卡和音频设备需在目标电脑试用。此交付物不适用于 macOS、Linux 或 Windows 32 位，未验证 Windows ARM。
@@ -8,8 +8,8 @@ KiCon Asia 2026 · 实时同传
 程序未代码签名，Windows 可能提示未知发布者。请确认发送者和文件校验值，不要关闭安全防护；企业电脑按单位安装流程处理。
 
 二、安装与首次启动
-1. 解压 KiCon-Live-Translate-1.0.2-Windows-x64.zip。
-2. 运行 KiCon-Live-Translate-Setup-1.0.2-x64.exe，按向导安装，默认按当前用户安装。
+1. 解压 KiCon-Live-Translate-1.0.3-Windows-x64.zip。
+2. 运行 KiCon-Live-Translate-Setup-1.0.3-x64.exe，按向导安装，默认按当前用户安装。
 3. 打开桌面或开始菜单“KiCon 实时同传”。
 4. 顶部“配置”中填写自己的 API Key，核对默认配置并保存：
    Base URL：https://maas.qianwenaiapi.com/compatible-mode/v1
